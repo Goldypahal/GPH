@@ -233,3 +233,167 @@ window.drawTrajectoryOnMap = function(trajectoryPoints) {
     }
   }, 1200);
 };
+
+// ==========================================================================
+// LIVE PURSUIT MODE — GTA5-style live tracking blip for a stolen vehicle.
+// Polls /api/tracking/live/{plate}, which dead-reckons a moving position
+// from the vehicle's last two confirmed ANPR sightings (heading + speed),
+// and animates a pulsing marker + heading cone + predicted-next-camera
+// pin on the GIS map, alongside a live HUD readout.
+// ==========================================================================
+let livePursuitState = {
+  active: false,
+  plate: null,
+  pollTimer: null,
+  marker: null,
+  nextCamMarker: null,
+  trailLine: null
+};
+
+function toggleLivePursuit() {
+  if (livePursuitState.active) {
+    stopLivePursuit();
+    return;
+  }
+  if (typeof currentTrajectoryData === "undefined" || !currentTrajectoryData || !currentTrajectoryData.plate_number) {
+    alert("Track a vehicle's journey first, then start Live Track.");
+    return;
+  }
+  startLivePursuit(currentTrajectoryData.plate_number);
+}
+
+function startLivePursuit(plate) {
+  livePursuitState.active = true;
+  livePursuitState.plate = plate;
+
+  const btn = document.getElementById("live-pursuit-toggle-btn");
+  if (btn) { btn.innerHTML = "<span>⏹</span> STOP LIVE TRACK"; btn.style.background = "#7f1d1d"; }
+
+  document.getElementById("lp-hud-plate").textContent = plate;
+  document.getElementById("live-pursuit-hud").style.display = "block";
+
+  // Jump to the GIS map view so the officer sees the live blip immediately.
+  const tabGis = document.getElementById("tab-gis");
+  if (tabGis) tabGis.click();
+
+  pollLivePursuit(); // immediate first fetch
+  livePursuitState.pollTimer = setInterval(pollLivePursuit, 2500);
+}
+
+function stopLivePursuit() {
+  livePursuitState.active = false;
+  if (livePursuitState.pollTimer) clearInterval(livePursuitState.pollTimer);
+  livePursuitState.pollTimer = null;
+
+  const btn = document.getElementById("live-pursuit-toggle-btn");
+  if (btn) { btn.innerHTML = "<span>🚨</span> LIVE TRACK ON MAP"; btn.style.background = "#dc2626"; }
+
+  document.getElementById("live-pursuit-hud").style.display = "none";
+
+  if (gisMap) {
+    if (livePursuitState.marker) gisMap.removeLayer(livePursuitState.marker);
+    if (livePursuitState.nextCamMarker) gisMap.removeLayer(livePursuitState.nextCamMarker);
+    if (livePursuitState.trailLine) gisMap.removeLayer(livePursuitState.trailLine);
+  }
+  livePursuitState.marker = null;
+  livePursuitState.nextCamMarker = null;
+  livePursuitState.trailLine = null;
+}
+
+async function pollLivePursuit() {
+  if (!livePursuitState.active || !livePursuitState.plate) return;
+  try {
+    const res = await fetch(`/api/tracking/live/${encodeURIComponent(livePursuitState.plate)}`);
+    if (!res.ok) {
+      document.getElementById("lp-hud-status-pill").textContent = "NO SIGNAL";
+      return;
+    }
+    const pos = await res.json();
+    renderLivePursuitPosition(pos);
+  } catch (err) {
+    console.error("Live pursuit poll failed:", err);
+  }
+}
+
+function renderLivePursuitPosition(pos) {
+  const isStale = pos.status === "STALE";
+
+  // --- HUD readout ---
+  const pill = document.getElementById("lp-hud-status-pill");
+  pill.textContent = isStale ? "SIGNAL STALE" : "LIVE (PREDICTED)";
+  pill.className = "lp-hud-status-pill " + (isStale ? "lp-stale-pill" : "lp-live");
+
+  const dot = document.getElementById("lp-status-dot");
+  dot.style.background = isStale ? "#f59e0b" : "#ef4444";
+
+  document.getElementById("lp-hud-speed").textContent = `${pos.speed_kmh} km/h`;
+  document.getElementById("lp-hud-heading").textContent = `${compassFromDeg(pos.heading_deg)} (${pos.heading_deg}°)`;
+  document.getElementById("lp-hud-last-cam").textContent = `${pos.last_confirmed_camera} (${pos.last_confirmed_district})`;
+  document.getElementById("lp-hud-age").textContent = formatAgeSeconds(pos.seconds_since_confirmed);
+  document.getElementById("lp-hud-next-cam").textContent = pos.predicted_next_camera
+    ? `${pos.predicted_next_camera} (${pos.predicted_next_district})`
+    : "No camera ahead on heading";
+  document.getElementById("lp-hud-eta").textContent = pos.eta_to_next_camera_sec
+    ? `~${Math.round(pos.eta_to_next_camera_sec / 60)} min`
+    : "–";
+
+  if (!gisMap) return;
+
+  // --- Trail (fading line of recent confirmed checkpoints) ---
+  if (livePursuitState.trailLine) gisMap.removeLayer(livePursuitState.trailLine);
+  if (pos.trail && pos.trail.length > 1) {
+    livePursuitState.trailLine = L.polyline(pos.trail, {
+      color: "#ef4444", weight: 3, opacity: 0.4, dashArray: "4, 6"
+    }).addTo(gisMap);
+  }
+
+  // --- Live pulsing blip with heading cone (radar-style) ---
+  const html = `
+    <div class="lp-vehicle-marker-wrap">
+      <div class="lp-radar-ring"></div>
+      <div class="lp-heading-cone" style="transform:rotate(${pos.heading_deg}deg);"></div>
+      <div class="lp-vehicle-dot ${isStale ? 'lp-stale' : ''}">🚓</div>
+    </div>
+  `;
+  const icon = L.divIcon({ html, className: "lp-marker-icon", iconSize: [46, 46], iconAnchor: [23, 23] });
+
+  if (!livePursuitState.marker) {
+    livePursuitState.marker = L.marker([pos.lat, pos.lng], { icon, zIndexOffset: 1000 }).addTo(gisMap);
+    gisMap.setView([pos.lat, pos.lng], 10, { animate: true });
+  } else {
+    livePursuitState.marker.setIcon(icon);
+    livePursuitState.marker.setLatLng([pos.lat, pos.lng]); // Leaflet marker CSS transition eases this visually
+  }
+  livePursuitState.marker.bindPopup(`
+    <div style="font-family:sans-serif; color:#0f172a; min-width:200px;">
+      <div style="font-weight:bold; color:#dc2626;">🚨 ${pos.plate_number} — ${isStale ? 'SIGNAL STALE' : 'LIVE PREDICTED'}</div>
+      <div style="font-size:11px; margin-top:4px;">${pos.watchlist_reason || 'Under active surveillance'}</div>
+      <div style="font-size:11px;"><strong>Speed:</strong> ${pos.speed_kmh} km/h &nbsp; <strong>Heading:</strong> ${compassFromDeg(pos.heading_deg)}</div>
+    </div>
+  `);
+
+  // --- Predicted next camera pin ---
+  if (livePursuitState.nextCamMarker) gisMap.removeLayer(livePursuitState.nextCamMarker);
+  if (pos.predicted_next_camera && pos.predicted_next_lat) {
+    const camIcon = L.divIcon({
+      html: `<div class="lp-next-camera-icon" style="font-size:22px;">🎯</div>`,
+      className: "lp-next-cam-pin", iconSize: [26, 26], iconAnchor: [13, 13]
+    });
+    livePursuitState.nextCamMarker = L.marker([pos.predicted_next_lat, pos.predicted_next_lng], { icon: camIcon })
+      .bindTooltip(`Likely next reconfirmation: ${pos.predicted_next_camera}`, { permanent: false })
+      .addTo(gisMap);
+  }
+}
+
+function compassFromDeg(deg) {
+  const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
+
+function formatAgeSeconds(sec) {
+  if (sec < 60) return `${Math.round(sec)}s ago`;
+  const mins = Math.floor(sec / 60);
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  return `${hrs}h ${mins % 60}m ago`;
+}

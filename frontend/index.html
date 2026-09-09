@@ -179,7 +179,7 @@
                 Suspect vehicle involved in armed robbery. Tracked across 5 Gujarat highway checkpoints.
               </div>
             </div>
-            <div style="display:flex; gap:24px;">
+            <div style="display:flex; gap:24px; align-items:center;">
               <div>
                 <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase;">Total Sightings</div>
                 <div style="font-size:1.4rem; font-weight:800; color:#fff;" id="sum-sightings">5</div>
@@ -192,8 +192,32 @@
                 <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase;">Avg Speed</div>
                 <div style="font-size:1.4rem; font-weight:800; color:var(--accent-amber);" id="sum-speed">70.6 km/h</div>
               </div>
+              <button class="primary-search-btn" id="live-pursuit-toggle-btn" style="background:#dc2626; padding:10px 18px;" onclick="toggleLivePursuit()">
+                <span>🚨</span> LIVE TRACK ON MAP
+              </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Live Pursuit HUD (GTA-style live radar panel) -->
+      <div id="live-pursuit-hud" class="live-pursuit-hud" style="display:none;">
+        <div class="lp-hud-header">
+          <span class="lp-hud-blip-dot" id="lp-status-dot"></span>
+          <span id="lp-hud-title">LIVE PURSUIT — <span id="lp-hud-plate">GJ01AB1234</span></span>
+          <span class="lp-hud-status-pill" id="lp-hud-status-pill">CONNECTING…</span>
+          <button class="lp-hud-close" onclick="toggleLivePursuit()">✕</button>
+        </div>
+        <div class="lp-hud-body">
+          <div class="lp-hud-stat"><div class="lp-hud-label">Speed</div><div class="lp-hud-value" id="lp-hud-speed">–</div></div>
+          <div class="lp-hud-stat"><div class="lp-hud-label">Heading</div><div class="lp-hud-value" id="lp-hud-heading">–</div></div>
+          <div class="lp-hud-stat"><div class="lp-hud-label">Last Confirmed</div><div class="lp-hud-value" id="lp-hud-last-cam">–</div></div>
+          <div class="lp-hud-stat"><div class="lp-hud-label">Confirmed</div><div class="lp-hud-value" id="lp-hud-age">–</div></div>
+          <div class="lp-hud-stat"><div class="lp-hud-label">Nearest Camera Ahead</div><div class="lp-hud-value" id="lp-hud-next-cam">–</div></div>
+          <div class="lp-hud-stat"><div class="lp-hud-label">ETA to that Camera</div><div class="lp-hud-value" id="lp-hud-eta">–</div></div>
+        </div>
+        <div class="lp-hud-footnote" id="lp-hud-footnote">
+          Position is dead-reckoned from the last two confirmed ANPR sightings (heading + speed) — GIVIN has no in-vehicle GPS. Use "Simulate Alert" on Watchlists tab to push a fresh sighting.
         </div>
       </div>
 

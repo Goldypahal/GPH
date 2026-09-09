@@ -1,0 +1,669 @@
+From 43d22282e87ffefc791a3a85be5dde99efb5b1d4 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.local>
+Date: Wed, 9 Sep 2026 07:31:34 +0000
+Subject: [PATCH] Add Live Pursuit: dead-reckoned live map tracking for stolen
+ vehicles
+
+---
+ backend/app/api/tracking.py             |  32 +++-
+ backend/app/models/schema.py            |  20 +++
+ backend/app/services/vehicle_tracker.py | 129 +++++++++++++++-
+ frontend/css/style.css                  | 188 ++++++++++++++++++++++++
+ frontend/index.html                     |  26 +++-
+ frontend/js/map.js                      | 164 +++++++++++++++++++++
+ 6 files changed, 556 insertions(+), 3 deletions(-)
+
+diff --git a/backend/app/api/tracking.py b/backend/app/api/tracking.py
+index 48fed43..7562870 100644
+--- a/backend/app/api/tracking.py
++++ b/backend/app/api/tracking.py
+@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
+ from typing import List, Optional
+ from backend.app.core.database import get_db
+ from backend.app.models.orm import VehicleSighting, Camera, AuditLog
+-from backend.app.models.schema import VehicleJourneySummary, VehicleSightingOut
++from backend.app.models.schema import VehicleJourneySummary, VehicleSightingOut, LivePursuitPosition
+ from backend.app.services.vehicle_tracker import VehicleTracker
+ from backend.app.services.anpr_engine import ANPREngine
+ from backend.app.core.security import generate_sha256_hash
+@@ -41,6 +41,36 @@ def search_and_reconstruct_vehicle_route(
+ 
+     return journey
+ 
++@router.get("/live/{plate}", response_model=LivePursuitPosition)
++def get_live_pursuit_position(
++    plate: str,
++    db: Session = Depends(get_db)
++):
++    """
++    Live Pursuit Mode (GTA-style live map).
++
++    GIVIN is a CCTV/ANPR network, not an in-vehicle GPS tracker, so a stolen
++    vehicle's "live" position is a dead-reckoned projection: it takes the
++    vehicle's last two confirmed camera sightings, derives heading + speed,
++    and extrapolates a moving marker forward from the most recent confirmed
++    checkpoint. It also nominates the nearest CCTV camera ahead on that
++    heading so a controller knows which feed will most likely reconfirm it.
++    Poll this endpoint every 1-3 seconds from the map to animate the blip;
++    the position resets to a fresh dead-reckoning baseline every time a new
++    ANPR sighting is recorded.
++    """
++    live_position = VehicleTracker.predict_live_position(db, plate)
++    if not live_position:
++        raise HTTPException(
++            status_code=404,
++            detail=f"No sightings found for vehicle '{plate}' — cannot start live pursuit."
++        )
++
++    # Note: intentionally not audit-logged per call (this is polled every
++    # 1-3s by the live map); the initiating /tracking/search call already
++    # records the investigation in the audit trail.
++    return live_position
++
+ @router.get("/recent", response_model=List[VehicleSightingOut])
+ def get_recent_sightings(
+     limit: int = Query(20, le=100),
+diff --git a/backend/app/models/schema.py b/backend/app/models/schema.py
+index 484c482..9e4fb8c 100644
+--- a/backend/app/models/schema.py
++++ b/backend/app/models/schema.py
+@@ -143,6 +143,26 @@ class VehicleJourneySummary(BaseModel):
+     trajectory: List[VehicleTrajectoryPoint]
+     matched_watchlist: Optional[WatchlistOut] = None
+ 
++class LivePursuitPosition(BaseModel):
++    plate_number: str
++    status: str  # "LIVE_PREDICTED" | "STALE" | "AT_CAMERA"
++    lat: float
++    lng: float
++    heading_deg: float
++    speed_kmh: float
++    last_confirmed_camera: str
++    last_confirmed_district: str
++    last_confirmed_time: datetime
++    seconds_since_confirmed: float
++    predicted_next_camera: Optional[str] = None
++    predicted_next_district: Optional[str] = None
++    predicted_next_lat: Optional[float] = None
++    predicted_next_lng: Optional[float] = None
++    eta_to_next_camera_sec: Optional[float] = None
++    trail: List[List[float]] = []
++    risk_level: Optional[str] = None
++    watchlist_reason: Optional[str] = None
++
+ class ScaleCapacitySimulation(BaseModel):
+     camera_count: int
+     resolution: str
+diff --git a/backend/app/services/vehicle_tracker.py b/backend/app/services/vehicle_tracker.py
+index 335c837..54df314 100644
+--- a/backend/app/services/vehicle_tracker.py
++++ b/backend/app/services/vehicle_tracker.py
+@@ -1,9 +1,12 @@
+ import math
++from datetime import datetime, timezone
+ from typing import List, Dict, Any, Optional
+ from sqlalchemy.orm import Session
+ from backend.app.models.orm import VehicleSighting, Camera, Watchlist
+ from backend.app.services.anpr_engine import ANPREngine
+-from backend.app.models.schema import VehicleJourneySummary, VehicleTrajectoryPoint, WatchlistOut
++from backend.app.models.schema import (
++    VehicleJourneySummary, VehicleTrajectoryPoint, WatchlistOut, LivePursuitPosition
++)
+ 
+ def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+     """Computes great-circle distance between two GPS coordinates in kilometers."""
+@@ -16,6 +19,36 @@ def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) ->
+     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+     return round(R * c, 2)
+ 
++def bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
++    """Initial compass bearing (0=N, 90=E, 180=S, 270=W) from point 1 to point 2."""
++    phi1, phi2 = math.radians(lat1), math.radians(lat2)
++    d_lambda = math.radians(lon2 - lon1)
++    x = math.sin(d_lambda) * math.cos(phi2)
++    y = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(d_lambda)
++    theta = math.atan2(x, y)
++    return (math.degrees(theta) + 360) % 360
++
++def destination_point(lat: float, lon: float, bearing: float, distance_km: float) -> tuple:
++    """Projects a new lat/lng given a start point, bearing (deg) and distance (km)."""
++    R = 6371.0
++    phi1 = math.radians(lat)
++    lambda1 = math.radians(lon)
++    theta = math.radians(bearing)
++    delta = distance_km / R
++
++    phi2 = math.asin(math.sin(phi1) * math.cos(delta) + math.cos(phi1) * math.sin(delta) * math.cos(theta))
++    lambda2 = lambda1 + math.atan2(
++        math.sin(theta) * math.sin(delta) * math.cos(phi1),
++        math.cos(delta) - math.sin(phi1) * math.sin(phi2)
++    )
++    return round(math.degrees(phi2), 6), round(math.degrees(lambda2), 6)
++
++def _as_utc(dt: datetime) -> datetime:
++    """Normalizes a possibly-naive datetime (e.g. round-tripped through SQLite) to aware UTC."""
++    if dt.tzinfo is None:
++        return dt.replace(tzinfo=timezone.utc)
++    return dt.astimezone(timezone.utc)
++
+ class VehicleTracker:
+     """
+     Cross-Camera Temporal-Spatial Vehicle Trajectory and Route Reconstruction Engine.
+@@ -120,3 +153,97 @@ class VehicleTracker:
+             trajectory=trajectory_points,
+             matched_watchlist=watchlist_out
+         )
++
++    # ------------------------------------------------------------------
++    # LIVE PURSUIT / DEAD-RECKONING PREDICTED-POSITION ENGINE
++    # ------------------------------------------------------------------
++    # GIVIN has no in-vehicle GPS transponder to poll — a "live map" for a
++    # stolen car is necessarily built from the CCTV/ANPR sightings it has
++    # actually recorded. This engine turns the last two confirmed sightings
++    # into a heading + speed vector and projects ("dead-reckons") a live
++    # position forward every time it's called, similar to how a radar
++    # controller extrapolates a contact between sweeps. The result is always
++    # clearly labeled PREDICTED vs the CONFIRMED checkpoint it's based on,
++    # and it also nominates the nearest CCTV camera ahead on that heading so
++    # controllers know which feed is most likely to reconfirm the vehicle.
++    STALE_AFTER_SEC = 600          # beyond this, freeze the marker & flag STALE
++    MAX_LOOKAHEAD_KM = 120         # cap how far we'll project ahead of the last camera
++    NEXT_CAMERA_CONE_DEG = 55      # how far off-heading a camera can be and still count as "ahead"
++    NEXT_CAMERA_MAX_KM = 200
++
++    @classmethod
++    def predict_live_position(cls, db: Session, plate_number: str) -> Optional[LivePursuitPosition]:
++        journey = cls.reconstruct_journey(db, plate_number)
++        if not journey or not journey.trajectory:
++            return None
++
++        traj = journey.trajectory
++        last = traj[-1]
++        prev = traj[-2] if len(traj) >= 2 else None
++
++        # Vector (heading + speed) the vehicle was last confirmed travelling on.
++        if prev:
++            heading = bearing_deg(prev.lat, prev.lng, last.lat, last.lng)
++        else:
++            heading = 0.0  # No prior fix — default heading, still shown as last-known point.
++        speed_kmh = last.speed_kmh or (journey.average_speed_kmh or 50.0)
++
++        last_confirmed_time = _as_utc(last.timestamp)
++        now = datetime.now(timezone.utc)
++        elapsed_sec = max(0.0, (now - last_confirmed_time).total_seconds())
++
++        is_stale = elapsed_sec > cls.STALE_AFTER_SEC
++        projection_sec = min(elapsed_sec, cls.STALE_AFTER_SEC)
++        distance_km = min((speed_kmh * projection_sec / 3600.0), cls.MAX_LOOKAHEAD_KM)
++
++        if distance_km > 0.01:
++            live_lat, live_lng = destination_point(last.lat, last.lng, heading, distance_km)
++        else:
++            live_lat, live_lng = last.lat, last.lng
++
++        # Nominate the most probable next CCTV checkpoint: nearest camera that
++        # lies roughly within the vehicle's current heading cone.
++        candidate_cameras = (
++            db.query(Camera)
++            .filter(Camera.id != last.camera_id, Camera.status == "ACTIVE")
++            .all()
++        )
++        best_cam, best_dist = None, None
++        for cam in candidate_cameras:
++            d_km = haversine_distance_km(live_lat, live_lng, cam.lat, cam.lng)
++            if d_km > cls.NEXT_CAMERA_MAX_KM:
++                continue
++            brg = bearing_deg(live_lat, live_lng, cam.lat, cam.lng)
++            diff = min(abs(brg - heading), 360 - abs(brg - heading))
++            if diff <= cls.NEXT_CAMERA_CONE_DEG and (best_dist is None or d_km < best_dist):
++                best_cam, best_dist = cam, d_km
++
++        predicted_next_camera = best_cam.name if best_cam else None
++        predicted_next_district = best_cam.district if best_cam else None
++        predicted_next_lat = best_cam.lat if best_cam else None
++        predicted_next_lng = best_cam.lng if best_cam else None
++        eta_sec = round((best_dist / speed_kmh) * 3600, 0) if (best_cam and speed_kmh > 0) else None
++
++        trail_points = [[p.lat, p.lng] for p in traj[-6:]]
++
++        watchlist = journey.matched_watchlist
++        return LivePursuitPosition(
++            plate_number=journey.plate_number,
++            status="STALE" if is_stale else "LIVE_PREDICTED",
++            lat=live_lat,
++            lng=live_lng,
++            heading_deg=round(heading, 1),
++            speed_kmh=round(speed_kmh, 1),
++            last_confirmed_camera=last.camera_name,
++            last_confirmed_district=last.district,
++            last_confirmed_time=last.timestamp,
++            seconds_since_confirmed=round(elapsed_sec, 1),
++            predicted_next_camera=predicted_next_camera,
++            predicted_next_district=predicted_next_district,
++            predicted_next_lat=predicted_next_lat,
++            predicted_next_lng=predicted_next_lng,
++            eta_to_next_camera_sec=eta_sec,
++            trail=trail_points,
++            risk_level=watchlist.risk_level if watchlist else None,
++            watchlist_reason=watchlist.reason if watchlist else None
++        )
+diff --git a/frontend/css/style.css b/frontend/css/style.css
+index 730e766..c9adc48 100644
+--- a/frontend/css/style.css
++++ b/frontend/css/style.css
+@@ -868,3 +868,191 @@ body {
+   padding-top: 6px;
+   min-width: 250px;
+ }
++
++/* ==========================================================================
++   LIVE PURSUIT MODE — GTA-style live tracking blip, radar sweep & HUD panel
++   ========================================================================== */
++
++@keyframes lp-radar-sweep {
++  0%   { transform: rotate(0deg); opacity: 0.9; }
++  100% { transform: rotate(360deg); opacity: 0.9; }
++}
++
++@keyframes lp-blip-pulse {
++  0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65); }
++  70%  { box-shadow: 0 0 0 22px rgba(239, 68, 68, 0); }
++  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
++}
++
++@keyframes lp-blip-pulse-stale {
++  0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55); }
++  70%  { box-shadow: 0 0 0 18px rgba(245, 158, 11, 0); }
++  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
++}
++
++.lp-vehicle-marker-wrap {
++  position: relative;
++  width: 46px;
++  height: 46px;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  transition: transform 1s linear;
++}
++
++.lp-radar-ring {
++  position: absolute;
++  width: 46px;
++  height: 46px;
++  border-radius: 50%;
++  border: 1.5px dashed rgba(239, 68, 68, 0.45);
++  animation: lp-radar-sweep 3s linear infinite;
++}
++
++.lp-radar-ring::after {
++  content: "";
++  position: absolute;
++  top: 50%;
++  left: 50%;
++  width: 23px;
++  height: 1.5px;
++  background: linear-gradient(90deg, rgba(239,68,68,0.9), transparent);
++  transform-origin: 0 0;
++}
++
++.lp-vehicle-dot {
++  width: 20px;
++  height: 20px;
++  border-radius: 50%;
++  background: #ef4444;
++  border: 2px solid #fff;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  font-size: 11px;
++  z-index: 2;
++  animation: lp-blip-pulse 1.8s infinite;
++  transition: transform 0.4s ease;
++}
++
++.lp-vehicle-dot.lp-stale {
++  background: #f59e0b;
++  animation: lp-blip-pulse-stale 1.8s infinite;
++}
++
++.lp-heading-cone {
++  position: absolute;
++  width: 0;
++  height: 0;
++  border-left: 9px solid transparent;
++  border-right: 9px solid transparent;
++  border-bottom: 22px solid rgba(239, 68, 68, 0.55);
++  top: -18px;
++  left: 50%;
++  margin-left: -9px;
++  transform-origin: 50% 32px;
++  z-index: 1;
++}
++
++.lp-next-camera-icon {
++  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.9));
++}
++
++/* HUD Panel */
++.live-pursuit-hud {
++  position: fixed;
++  bottom: 22px;
++  right: 22px;
++  width: 340px;
++  background: rgba(10, 13, 20, 0.94);
++  border: 1px solid rgba(239, 68, 68, 0.55);
++  border-radius: 10px;
++  box-shadow: 0 10px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(239,68,68,0.08);
++  z-index: 2000;
++  font-family: var(--font-mono);
++  backdrop-filter: blur(6px);
++}
++
++.lp-hud-header {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++  padding: 10px 12px;
++  border-bottom: 1px solid rgba(239, 68, 68, 0.35);
++  font-size: 0.72rem;
++  font-weight: 800;
++  letter-spacing: 0.5px;
++  color: #fecaca;
++  text-transform: uppercase;
++}
++
++.lp-hud-blip-dot {
++  width: 9px;
++  height: 9px;
++  border-radius: 50%;
++  background: #ef4444;
++  animation: lp-blip-pulse 1.4s infinite;
++  flex-shrink: 0;
++}
++
++.lp-hud-status-pill {
++  margin-left: auto;
++  font-size: 0.62rem;
++  padding: 2px 8px;
++  border-radius: 10px;
++  background: rgba(239,68,68,0.18);
++  color: #fca5a5;
++  border: 1px solid rgba(239,68,68,0.4);
++}
++
++.lp-hud-status-pill.lp-live {
++  background: rgba(16,185,129,0.15);
++  color: #6ee7b7;
++  border-color: rgba(16,185,129,0.4);
++}
++
++.lp-hud-status-pill.lp-stale-pill {
++  background: rgba(245,158,11,0.15);
++  color: #fcd34d;
++  border-color: rgba(245,158,11,0.4);
++}
++
++.lp-hud-close {
++  background: none;
++  border: none;
++  color: var(--text-muted);
++  font-size: 0.85rem;
++  cursor: pointer;
++  padding: 0 2px;
++}
++.lp-hud-close:hover { color: #fff; }
++
++.lp-hud-body {
++  display: grid;
++  grid-template-columns: 1fr 1fr;
++  gap: 10px;
++  padding: 12px;
++}
++
++.lp-hud-label {
++  font-size: 0.6rem;
++  color: var(--text-dim);
++  text-transform: uppercase;
++  letter-spacing: 0.4px;
++  margin-bottom: 2px;
++}
++
++.lp-hud-value {
++  font-size: 0.82rem;
++  font-weight: 700;
++  color: #fff;
++}
++
++.lp-hud-footnote {
++  font-size: 0.62rem;
++  color: var(--text-dim);
++  padding: 8px 12px 10px;
++  border-top: 1px solid rgba(148,163,184,0.12);
++  line-height: 1.4;
++  font-family: var(--font-sans, sans-serif);
++}
+diff --git a/frontend/index.html b/frontend/index.html
+index 9f14275..919babb 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -179,7 +179,7 @@
+                 Suspect vehicle involved in armed robbery. Tracked across 5 Gujarat highway checkpoints.
+               </div>
+             </div>
+-            <div style="display:flex; gap:24px;">
++            <div style="display:flex; gap:24px; align-items:center;">
+               <div>
+                 <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase;">Total Sightings</div>
+                 <div style="font-size:1.4rem; font-weight:800; color:#fff;" id="sum-sightings">5</div>
+@@ -192,11 +192,35 @@
+                 <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase;">Avg Speed</div>
+                 <div style="font-size:1.4rem; font-weight:800; color:var(--accent-amber);" id="sum-speed">70.6 km/h</div>
+               </div>
++              <button class="primary-search-btn" id="live-pursuit-toggle-btn" style="background:#dc2626; padding:10px 18px;" onclick="toggleLivePursuit()">
++                <span>🚨</span> LIVE TRACK ON MAP
++              </button>
+             </div>
+           </div>
+         </div>
+       </div>
+ 
++      <!-- Live Pursuit HUD (GTA-style live radar panel) -->
++      <div id="live-pursuit-hud" class="live-pursuit-hud" style="display:none;">
++        <div class="lp-hud-header">
++          <span class="lp-hud-blip-dot" id="lp-status-dot"></span>
++          <span id="lp-hud-title">LIVE PURSUIT — <span id="lp-hud-plate">GJ01AB1234</span></span>
++          <span class="lp-hud-status-pill" id="lp-hud-status-pill">CONNECTING…</span>
++          <button class="lp-hud-close" onclick="toggleLivePursuit()">✕</button>
++        </div>
++        <div class="lp-hud-body">
++          <div class="lp-hud-stat"><div class="lp-hud-label">Speed</div><div class="lp-hud-value" id="lp-hud-speed">–</div></div>
++          <div class="lp-hud-stat"><div class="lp-hud-label">Heading</div><div class="lp-hud-value" id="lp-hud-heading">–</div></div>
++          <div class="lp-hud-stat"><div class="lp-hud-label">Last Confirmed</div><div class="lp-hud-value" id="lp-hud-last-cam">–</div></div>
++          <div class="lp-hud-stat"><div class="lp-hud-label">Confirmed</div><div class="lp-hud-value" id="lp-hud-age">–</div></div>
++          <div class="lp-hud-stat"><div class="lp-hud-label">Nearest Camera Ahead</div><div class="lp-hud-value" id="lp-hud-next-cam">–</div></div>
++          <div class="lp-hud-stat"><div class="lp-hud-label">ETA to that Camera</div><div class="lp-hud-value" id="lp-hud-eta">–</div></div>
++        </div>
++        <div class="lp-hud-footnote" id="lp-hud-footnote">
++          Position is dead-reckoned from the last two confirmed ANPR sightings (heading + speed) — GIVIN has no in-vehicle GPS. Use "Simulate Alert" on Watchlists tab to push a fresh sighting.
++        </div>
++      </div>
++
+       <!-- Chronological Trajectory Cards -->
+       <div class="panel-card">
+         <div class="panel-header">
+diff --git a/frontend/js/map.js b/frontend/js/map.js
+index 387faf7..d85915c 100644
+--- a/frontend/js/map.js
++++ b/frontend/js/map.js
+@@ -233,3 +233,167 @@ window.drawTrajectoryOnMap = function(trajectoryPoints) {
+     }
+   }, 1200);
+ };
++
++// ==========================================================================
++// LIVE PURSUIT MODE — GTA5-style live tracking blip for a stolen vehicle.
++// Polls /api/tracking/live/{plate}, which dead-reckons a moving position
++// from the vehicle's last two confirmed ANPR sightings (heading + speed),
++// and animates a pulsing marker + heading cone + predicted-next-camera
++// pin on the GIS map, alongside a live HUD readout.
++// ==========================================================================
++let livePursuitState = {
++  active: false,
++  plate: null,
++  pollTimer: null,
++  marker: null,
++  nextCamMarker: null,
++  trailLine: null
++};
++
++function toggleLivePursuit() {
++  if (livePursuitState.active) {
++    stopLivePursuit();
++    return;
++  }
++  if (typeof currentTrajectoryData === "undefined" || !currentTrajectoryData || !currentTrajectoryData.plate_number) {
++    alert("Track a vehicle's journey first, then start Live Track.");
++    return;
++  }
++  startLivePursuit(currentTrajectoryData.plate_number);
++}
++
++function startLivePursuit(plate) {
++  livePursuitState.active = true;
++  livePursuitState.plate = plate;
++
++  const btn = document.getElementById("live-pursuit-toggle-btn");
++  if (btn) { btn.innerHTML = "<span>⏹</span> STOP LIVE TRACK"; btn.style.background = "#7f1d1d"; }
++
++  document.getElementById("lp-hud-plate").textContent = plate;
++  document.getElementById("live-pursuit-hud").style.display = "block";
++
++  // Jump to the GIS map view so the officer sees the live blip immediately.
++  const tabGis = document.getElementById("tab-gis");
++  if (tabGis) tabGis.click();
++
++  pollLivePursuit(); // immediate first fetch
++  livePursuitState.pollTimer = setInterval(pollLivePursuit, 2500);
++}
++
++function stopLivePursuit() {
++  livePursuitState.active = false;
++  if (livePursuitState.pollTimer) clearInterval(livePursuitState.pollTimer);
++  livePursuitState.pollTimer = null;
++
++  const btn = document.getElementById("live-pursuit-toggle-btn");
++  if (btn) { btn.innerHTML = "<span>🚨</span> LIVE TRACK ON MAP"; btn.style.background = "#dc2626"; }
++
++  document.getElementById("live-pursuit-hud").style.display = "none";
++
++  if (gisMap) {
++    if (livePursuitState.marker) gisMap.removeLayer(livePursuitState.marker);
++    if (livePursuitState.nextCamMarker) gisMap.removeLayer(livePursuitState.nextCamMarker);
++    if (livePursuitState.trailLine) gisMap.removeLayer(livePursuitState.trailLine);
++  }
++  livePursuitState.marker = null;
++  livePursuitState.nextCamMarker = null;
++  livePursuitState.trailLine = null;
++}
++
++async function pollLivePursuit() {
++  if (!livePursuitState.active || !livePursuitState.plate) return;
++  try {
++    const res = await fetch(`/api/tracking/live/${encodeURIComponent(livePursuitState.plate)}`);
++    if (!res.ok) {
++      document.getElementById("lp-hud-status-pill").textContent = "NO SIGNAL";
++      return;
++    }
++    const pos = await res.json();
++    renderLivePursuitPosition(pos);
++  } catch (err) {
++    console.error("Live pursuit poll failed:", err);
++  }
++}
++
++function renderLivePursuitPosition(pos) {
++  const isStale = pos.status === "STALE";
++
++  // --- HUD readout ---
++  const pill = document.getElementById("lp-hud-status-pill");
++  pill.textContent = isStale ? "SIGNAL STALE" : "LIVE (PREDICTED)";
++  pill.className = "lp-hud-status-pill " + (isStale ? "lp-stale-pill" : "lp-live");
++
++  const dot = document.getElementById("lp-status-dot");
++  dot.style.background = isStale ? "#f59e0b" : "#ef4444";
++
++  document.getElementById("lp-hud-speed").textContent = `${pos.speed_kmh} km/h`;
++  document.getElementById("lp-hud-heading").textContent = `${compassFromDeg(pos.heading_deg)} (${pos.heading_deg}°)`;
++  document.getElementById("lp-hud-last-cam").textContent = `${pos.last_confirmed_camera} (${pos.last_confirmed_district})`;
++  document.getElementById("lp-hud-age").textContent = formatAgeSeconds(pos.seconds_since_confirmed);
++  document.getElementById("lp-hud-next-cam").textContent = pos.predicted_next_camera
++    ? `${pos.predicted_next_camera} (${pos.predicted_next_district})`
++    : "No camera ahead on heading";
++  document.getElementById("lp-hud-eta").textContent = pos.eta_to_next_camera_sec
++    ? `~${Math.round(pos.eta_to_next_camera_sec / 60)} min`
++    : "–";
++
++  if (!gisMap) return;
++
++  // --- Trail (fading line of recent confirmed checkpoints) ---
++  if (livePursuitState.trailLine) gisMap.removeLayer(livePursuitState.trailLine);
++  if (pos.trail && pos.trail.length > 1) {
++    livePursuitState.trailLine = L.polyline(pos.trail, {
++      color: "#ef4444", weight: 3, opacity: 0.4, dashArray: "4, 6"
++    }).addTo(gisMap);
++  }
++
++  // --- Live pulsing blip with heading cone (radar-style) ---
++  const html = `
++    <div class="lp-vehicle-marker-wrap">
++      <div class="lp-radar-ring"></div>
++      <div class="lp-heading-cone" style="transform:rotate(${pos.heading_deg}deg);"></div>
++      <div class="lp-vehicle-dot ${isStale ? 'lp-stale' : ''}">🚓</div>
++    </div>
++  `;
++  const icon = L.divIcon({ html, className: "lp-marker-icon", iconSize: [46, 46], iconAnchor: [23, 23] });
++
++  if (!livePursuitState.marker) {
++    livePursuitState.marker = L.marker([pos.lat, pos.lng], { icon, zIndexOffset: 1000 }).addTo(gisMap);
++    gisMap.setView([pos.lat, pos.lng], 10, { animate: true });
++  } else {
++    livePursuitState.marker.setIcon(icon);
++    livePursuitState.marker.setLatLng([pos.lat, pos.lng]); // Leaflet marker CSS transition eases this visually
++  }
++  livePursuitState.marker.bindPopup(`
++    <div style="font-family:sans-serif; color:#0f172a; min-width:200px;">
++      <div style="font-weight:bold; color:#dc2626;">🚨 ${pos.plate_number} — ${isStale ? 'SIGNAL STALE' : 'LIVE PREDICTED'}</div>
++      <div style="font-size:11px; margin-top:4px;">${pos.watchlist_reason || 'Under active surveillance'}</div>
++      <div style="font-size:11px;"><strong>Speed:</strong> ${pos.speed_kmh} km/h &nbsp; <strong>Heading:</strong> ${compassFromDeg(pos.heading_deg)}</div>
++    </div>
++  `);
++
++  // --- Predicted next camera pin ---
++  if (livePursuitState.nextCamMarker) gisMap.removeLayer(livePursuitState.nextCamMarker);
++  if (pos.predicted_next_camera && pos.predicted_next_lat) {
++    const camIcon = L.divIcon({
++      html: `<div class="lp-next-camera-icon" style="font-size:22px;">🎯</div>`,
++      className: "lp-next-cam-pin", iconSize: [26, 26], iconAnchor: [13, 13]
++    });
++    livePursuitState.nextCamMarker = L.marker([pos.predicted_next_lat, pos.predicted_next_lng], { icon: camIcon })
++      .bindTooltip(`Likely next reconfirmation: ${pos.predicted_next_camera}`, { permanent: false })
++      .addTo(gisMap);
++  }
++}
++
++function compassFromDeg(deg) {
++  const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
++  return dirs[Math.round(deg / 22.5) % 16];
++}
++
++function formatAgeSeconds(sec) {
++  if (sec < 60) return `${Math.round(sec)}s ago`;
++  const mins = Math.floor(sec / 60);
++  if (mins < 60) return `${mins} min ago`;
++  const hrs = Math.floor(mins / 60);
++  return `${hrs}h ${mins % 60}m ago`;
++}
+-- 
+2.43.0
+

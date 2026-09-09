@@ -143,6 +143,26 @@ class VehicleJourneySummary(BaseModel):
     trajectory: List[VehicleTrajectoryPoint]
     matched_watchlist: Optional[WatchlistOut] = None
 
+class LivePursuitPosition(BaseModel):
+    plate_number: str
+    status: str  # "LIVE_PREDICTED" | "STALE" | "AT_CAMERA"
+    lat: float
+    lng: float
+    heading_deg: float
+    speed_kmh: float
+    last_confirmed_camera: str
+    last_confirmed_district: str
+    last_confirmed_time: datetime
+    seconds_since_confirmed: float
+    predicted_next_camera: Optional[str] = None
+    predicted_next_district: Optional[str] = None
+    predicted_next_lat: Optional[float] = None
+    predicted_next_lng: Optional[float] = None
+    eta_to_next_camera_sec: Optional[float] = None
+    trail: List[List[float]] = []
+    risk_level: Optional[str] = None
+    watchlist_reason: Optional[str] = None
+
 class ScaleCapacitySimulation(BaseModel):
     camera_count: int
     resolution: str

@@ -138,15 +138,16 @@ def test_alert_lifecycle_action():
 
 def test_camera_onboarding_model1():
     """Verify onboarding a new camera into Model 1 registry."""
+    import uuid
     db = SessionLocal()
     cam_count_before = db.query(Camera).count()
+    unique_code = f"CAM-GJ-TEST-{uuid.uuid4().hex[:6].upper()}"
 
     payload = {
-        "logical_camera_id": "CAM-GJ-TEST-99",
+        "logical_camera_id": unique_code,
         "name": "Gandhinagar VIP Highway Toll Plaza",
         "district": "Gandhinagar",
         "location_name": "VIP Highway Gate",
-        "department_id": list(db.query(Camera).first().department_id),
         "department_id": db.query(Camera).first().department_id,
         "lat": 23.2195,
         "lng": 72.6455,
@@ -162,6 +163,17 @@ def test_camera_onboarding_model1():
     assert cam_count_after == cam_count_before + 1
     print("[PASS] test_camera_onboarding_model1 passed.")
 
+def test_live_pursuit_feature():
+    """Verify dead-reckoned live pursuit position endpoint for stolen vehicles."""
+    res = client.get("/api/tracking/live/GJ01AB1234")
+    assert res.status_code == 200
+    pos = res.json()
+    assert pos["plate_number"] == "GJ01AB1234"
+    assert pos["status"] in ["LIVE_PREDICTED", "STALE"]
+    assert pos["speed_kmh"] > 0
+    assert len(pos["trail"]) > 0
+    print("[PASS] test_live_pursuit_feature passed.")
+
 if __name__ == "__main__":
     print("\n==================================================================")
     print("  RUNNING GIVIN PRODUCTION SUITE TESTS (GUJARAT HACKATHON 2026)")
@@ -174,4 +186,5 @@ if __name__ == "__main__":
     test_scalability_calculator_80k()
     test_alert_lifecycle_action()
     test_camera_onboarding_model1()
-    print("\n*** ALL 8 TEST SUITES PASSED WITH 100% SUCCESS!\n")
+    test_live_pursuit_feature()
+    print("\n*** ALL 9 TEST SUITES PASSED WITH 100% SUCCESS!\n")

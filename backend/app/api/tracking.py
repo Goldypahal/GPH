@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from backend.app.core.database import get_db
 from backend.app.models.orm import VehicleSighting, Camera, AuditLog
-from backend.app.models.schema import VehicleJourneySummary, VehicleSightingOut
+from backend.app.models.schema import VehicleJourneySummary, VehicleSightingOut, LivePursuitPosition
 from backend.app.services.vehicle_tracker import VehicleTracker
 from backend.app.services.anpr_engine import ANPREngine
 from backend.app.core.security import generate_sha256_hash
@@ -40,6 +40,36 @@ def search_and_reconstruct_vehicle_route(
     db.commit()
 
     return journey
+
+@router.get("/live/{plate}", response_model=LivePursuitPosition)
+def get_live_pursuit_position(
+    plate: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Live Pursuit Mode (GTA-style live map).
+
+    GIVIN is a CCTV/ANPR network, not an in-vehicle GPS tracker, so a stolen
+    vehicle's "live" position is a dead-reckoned projection: it takes the
+    vehicle's last two confirmed camera sightings, derives heading + speed,
+    and extrapolates a moving marker forward from the most recent confirmed
+    checkpoint. It also nominates the nearest CCTV camera ahead on that
+    heading so a controller knows which feed will most likely reconfirm it.
+    Poll this endpoint every 1-3 seconds from the map to animate the blip;
+    the position resets to a fresh dead-reckoning baseline every time a new
+    ANPR sighting is recorded.
+    """
+    live_position = VehicleTracker.predict_live_position(db, plate)
+    if not live_position:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No sightings found for vehicle '{plate}' — cannot start live pursuit."
+        )
+
+    # Note: intentionally not audit-logged per call (this is polled every
+    # 1-3s by the live map); the initiating /tracking/search call already
+    # records the investigation in the audit trail.
+    return live_position
 
 @router.get("/recent", response_model=List[VehicleSightingOut])
 def get_recent_sightings(
