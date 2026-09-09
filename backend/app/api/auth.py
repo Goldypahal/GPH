@@ -106,3 +106,53 @@ def list_system_users(
         )
         for u in users
     ]
+
+# =====================================================================
+# PHASE D: AUDIT TRAIL & HIERARCHICAL ROLES ENDPOINTS
+# =====================================================================
+
+from backend.app.models.schema import AuditLogOut, AuditChainVerificationOut, RoleScopeOut
+from backend.app.services.audit_service import audit_service
+from backend.app.core.security import ROLE_SCOPES, ROLE_DESCRIPTIONS, require_permission
+
+@router.get("/roles", response_model=List[RoleScopeOut])
+def get_role_matrix():
+    """Returns the 5-tier hierarchical RBAC roles, descriptions, and granular scopes."""
+    roles = []
+    for r, scopes in ROLE_SCOPES.items():
+        if r in ROLE_DESCRIPTIONS:
+            roles.append(RoleScopeOut(
+                role=r,
+                description=ROLE_DESCRIPTIONS[r],
+                scopes=scopes
+            ))
+    return roles
+
+@router.get("/audit/logs", response_model=List[AuditLogOut])
+def get_audit_logs(
+    limit: int = 50,
+    user_id: Optional[str] = None,
+    action: Optional[str] = None,
+    resource: Optional[str] = None,
+    db: Session = Depends(get_db),
+    auditor: User = Depends(require_permission("audit:read"))
+):
+    """
+    Returns cryptographically signed audit log stream.
+    Requires 'audit:read' permission (Auditors, Super Admins, State Commissioners).
+    """
+    logs = audit_service.get_audit_trail(db, limit=limit, user_id=user_id, action=action, resource=resource)
+    return logs
+
+@router.get("/audit/verify-chain", response_model=AuditChainVerificationOut)
+def verify_audit_chain_integrity(
+    db: Session = Depends(get_db),
+    auditor: User = Depends(require_permission("audit:verify"))
+):
+    """
+    Traverses the blockchain-style cryptographic hash chain of all audit events.
+    Verifies Section 65B Indian Evidence Act tamper-evidence integrity.
+    """
+    result = audit_service.verify_chain(db)
+    return result
+

@@ -117,6 +117,7 @@ class Camera(Base):
     
     status = Column(String(50), default="ACTIVE") # ACTIVE, DEGRADED, INACTIVE, MAINTENANCE
     is_public_domain = Column(Boolean, default=True)
+    share_scope = Column(String(50), default="STATEWIDE_FEDERATED") # STATEWIDE_FEDERATED, DISTRICT_WIDE, INTERNAL_ONLY
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     department = relationship("Department", back_populates="cameras")
@@ -124,6 +125,25 @@ class Camera(Base):
     sightings = relationship("VehicleSighting", back_populates="camera")
     credentials = relationship("CameraCredential", back_populates="camera", uselist=False)
     configuration = relationship("CameraConfiguration", back_populates="camera", uselist=False)
+
+class FederationAccessRequest(Base):
+    __tablename__ = "federation_access_requests"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    request_uid = Column(String(50), unique=True, nullable=False, index=True)
+    requester_user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    requester_department_code = Column(String(50), nullable=False)
+    camera_id = Column(String(36), ForeignKey("cameras.id"), nullable=False)
+    target_department_code = Column(String(50), nullable=False)
+    legal_justification = Column(Text, nullable=False)
+    fir_number = Column(String(100), nullable=True)
+    status = Column(String(50), default="PENDING") # PENDING, APPROVED, REJECTED, EXPIRED
+    approved_by = Column(String(100), nullable=True)
+    valid_until = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    requester = relationship("User")
+    camera = relationship("Camera")
 
 class CameraCredential(Base):
     __tablename__ = "camera_credentials"

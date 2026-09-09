@@ -92,6 +92,83 @@ def get_current_user(
         user = db.query(User).first()
     return user
 
+# =====================================================================
+# 5-TIER HIERARCHICAL RBAC & GRANULAR SCOPES MATRIX
+# =====================================================================
+
+ROLE_DESCRIPTIONS = {
+    "SUPER_ADMIN": "Statewide System Administrator with full infrastructure and override authority",
+    "DGP_STATE_COMMISSIONER": "State Director General / Commissioner with statewide surveillance and federation clearance",
+    "SP_DISTRICT_CHIEF": "District Superintendent of Police with district surveillance and case administration",
+    "FIELD_OFFICER": "Field Police Officer with pursuit, ANPR query, and alert dispatch response",
+    "AUDITOR_COMPLIANCE": "Judicial / Vigilance Auditor with tamper-evidence verification authority"
+}
+
+ROLE_SCOPES: Dict[str, List[str]] = {
+    "SUPER_ADMIN": ["*"],
+    "DGP_STATE_COMMISSIONER": [
+        "cameras:read", "cameras:stream", "cameras:federation",
+        "tracking:search", "tracking:pursuit", "tracking:containment",
+        "alerts:read", "alerts:dispatch", "alerts:resolve",
+        "watchlist:read", "watchlist:write",
+        "cases:read", "cases:write",
+        "audit:read"
+    ],
+    "STATE_COMMAND": [ # synonym
+        "cameras:read", "cameras:stream", "cameras:federation",
+        "tracking:search", "tracking:pursuit", "tracking:containment",
+        "alerts:read", "alerts:dispatch", "alerts:resolve",
+        "watchlist:read", "watchlist:write",
+        "cases:read", "cases:write",
+        "audit:read"
+    ],
+    "SP_DISTRICT_CHIEF": [
+        "cameras:read", "cameras:write", "cameras:stream",
+        "tracking:search", "tracking:pursuit", "tracking:containment",
+        "alerts:read", "alerts:dispatch", "alerts:resolve",
+        "watchlist:read", "watchlist:write",
+        "cases:read", "cases:write"
+    ],
+    "DISTRICT_OFFICER": [ # synonym
+        "cameras:read", "cameras:write", "cameras:stream",
+        "tracking:search", "tracking:pursuit", "tracking:containment",
+        "alerts:read", "alerts:dispatch", "alerts:resolve",
+        "watchlist:read", "watchlist:write",
+        "cases:read", "cases:write"
+    ],
+    "FIELD_OFFICER": [
+        "cameras:read", "cameras:stream",
+        "tracking:search", "tracking:pursuit",
+        "alerts:read", "alerts:acknowledge",
+        "watchlist:read",
+        "cases:read"
+    ],
+    "INVESTIGATOR": [ # synonym
+        "cameras:read", "cameras:stream",
+        "tracking:search", "tracking:pursuit", "tracking:containment",
+        "alerts:read", "alerts:acknowledge",
+        "watchlist:read",
+        "cases:read", "cases:write"
+    ],
+    "CONTROL_ROOM_OPERATOR": [ # synonym
+        "cameras:read", "cameras:stream",
+        "tracking:search", "tracking:pursuit",
+        "alerts:read", "alerts:acknowledge",
+        "watchlist:read",
+        "cases:read"
+    ],
+    "AUDITOR_COMPLIANCE": [
+        "audit:read", "audit:verify", "evidence:verify", "system:read"
+    ],
+    "AUDITOR": [ # synonym
+        "audit:read", "audit:verify", "evidence:verify", "system:read"
+    ]
+}
+
+def get_scopes_for_role(role: str) -> List[str]:
+    """Resolves authorized permissions for a given role name."""
+    return ROLE_SCOPES.get(role, ["cameras:read", "tracking:search"])
+
 def require_role(*allowed_roles: str):
     """Dependency factory enforcing Role-Based Access Control (RBAC)."""
     def role_checker(user = Depends(get_current_user)):
@@ -104,6 +181,32 @@ def require_role(*allowed_roles: str):
             )
         return user
     return role_checker
+
+def require_permission(*required_scopes: str):
+    """Fine-grained OAuth2/JWT scope verification dependency."""
+    def permission_checker(user = Depends(get_current_user)):
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+        user_scopes = get_scopes_for_role(user.role)
+        if "*" in user_scopes:
+            return user
+        for req in required_scopes:
+            if req not in user_scopes:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Insufficient permissions: required '{req}', granted scopes: {user_scopes}"
+                )
+        return user
+    return permission_checker
+
+def check_district_jurisdiction(user, district: Optional[str]) -> bool:
+    """Verifies whether officer holds jurisdiction over specified district."""
+    if not district or not user.jurisdiction_district:
+        return True # Statewide officer or statewide resource
+    if user.role in ("SUPER_ADMIN", "DGP_STATE_COMMISSIONER", "STATE_COMMAND"):
+        return True
+    return user.jurisdiction_district.strip().lower() == district.strip().lower()
+
 
 def generate_sha256_hash(data: bytes) -> str:
     """Generate SHA-256 cryptographic hash of evidence or data."""

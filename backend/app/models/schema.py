@@ -257,3 +257,60 @@ class CameraGraphOut(BaseModel):
     active_corridors: List[str]
     edges: List[CameraGraphEdgeOut]
 
+# =====================================================================
+# PHASE D: ENTERPRISE RBAC, FEDERATION & AUDIT SCHEMAS
+# =====================================================================
+
+class FederationRequestCreate(BaseModel):
+    camera_id: str
+    legal_justification: str
+    fir_number: Optional[str] = None
+    requested_duration_hours: int = 24
+
+class FederationRequestOut(BaseModel):
+    id: str
+    request_uid: str
+    requester_user_id: str
+    requester_department_code: str
+    camera_id: str
+    target_department_code: str
+    legal_justification: str
+    fir_number: Optional[str] = None
+    status: str
+    approved_by: Optional[str] = None
+    valid_until: Optional[datetime] = None
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class FederationRequestAction(BaseModel):
+    status: str # "APPROVED" | "REJECTED"
+    approved_duration_hours: int = 24
+    remarks: Optional[str] = None
+
+class AuditLogOut(BaseModel):
+    id: str
+    user_id: str
+    action: str
+    resource: str
+    details_json: Optional[str] = None
+    prev_signature_hash: Optional[str] = None
+    signature_hash: str
+    timestamp: datetime
+    class Config:
+        from_attributes = True
+
+class AuditChainVerificationOut(BaseModel):
+    status: str # "VERIFIED_INTACT" | "TAMPERING_DETECTED"
+    total_records_verified: int
+    tampered_record_index: Optional[int] = None
+    compromised_record_id: Optional[str] = None
+    chain_head_hash: Optional[str] = None
+    message: str
+
+class RoleScopeOut(BaseModel):
+    role: str
+    description: str
+    scopes: List[str]
+
+
