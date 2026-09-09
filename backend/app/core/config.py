@@ -10,6 +10,14 @@ class Settings(BaseModel):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./givin.db")
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    KAFKA_BOOTSTRAP_SERVERS: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+    STORAGE_BACKEND: str = os.getenv("STORAGE_BACKEND", "local").lower() # local | minio | s3
+    MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "localhost:9000")
+    MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "givinadmin")
+    MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "change-this-development-password")
+    MINIO_SECURE: bool = os.getenv("MINIO_SECURE", "false").lower() in ("true", "1", "yes")
+    MINIO_BUCKET_EVIDENCE: str = os.getenv("MINIO_BUCKET_EVIDENCE", "givin-evidence")
     CORS_ORIGINS: list[str] = Field(default_factory=lambda: [
         origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000").split(",") if origin.strip()
     ])
