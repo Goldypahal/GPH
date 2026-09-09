@@ -350,8 +350,10 @@ class GovIntelBundleOut(BaseModel):
     plate_number: str
     vahan: Dict[str, Any]
     sarathi: Dict[str, Any]
+    cctns: Optional[Dict[str, Any]] = None
     egujcop: Dict[str, Any]
     afis: Dict[str, Any]
+    nafis: Optional[Dict[str, Any]] = None
     composite_risk_score: float
     risk_assessment: str
     source_signature_hash: str
@@ -403,4 +405,66 @@ class ScaleTenderSpecsResponse(BaseModel):
     performance_targets: Dict[str, Any]
     benchmark_methodology: Optional[Dict[str, Any]] = None
     legal_compliance: Dict[str, Any]
+
+
+# =====================================================================
+# SPATIAL GIS & CAMERA LIFECYCLE SCHEMAS
+# =====================================================================
+
+class RouteCorridorRequest(BaseModel):
+    waypoints: List[List[float]] = Field(
+        ...,
+        description="Ordered list of GPS waypoints [[lat, lng], ...] along the road or transit corridor"
+    )
+    corridor_buffer_meters: Optional[float] = Field(
+        800.0,
+        description="Buffer distance in meters around the transit corridor"
+    )
+
+
+class PursuitCorridorRequest(BaseModel):
+    origin_camera_id: str
+    heading_degrees: float
+    speed_kmh: Optional[float] = 80.0
+    time_elapsed_minutes: Optional[float] = 15.0
+
+
+class CameraHeartbeatRequest(BaseModel):
+    status: str = "ONLINE"
+    latency_ms: Optional[float] = 42.0
+    packet_loss: Optional[float] = 0.05
+    cpu_usage: Optional[float] = 28.5
+    memory_usage: Optional[float] = 41.2
+
+
+class CameraLifecycleReport(BaseModel):
+    camera_id: str
+    logical_camera_id: str
+    lifecycle_status: str
+    stages: Dict[str, Any]
+    validated_at: str
+    overall_status: str
+
+
+# =====================================================================
+# MINIO WORM EVIDENCE VAULT SCHEMAS
+# =====================================================================
+
+class EvidenceVaultPackageRequest(BaseModel):
+    plate_text: str
+    camera_id: str
+    original_frame_b64: Optional[str] = None
+    plate_crop_b64: Optional[str] = None
+    annotated_frame_b64: Optional[str] = None
+    anpr_confidence: Optional[float] = 0.95
+    model_version: Optional[str] = "YOLO11-ANPR-v2.1"
+    classification: Optional[str] = "CONFIDENTIAL"
+    retention_years: Optional[int] = 7
+
+
+class EvidenceCustodyLogRequest(BaseModel):
+    actor: str = "Inspector V. Patel"
+    action: str = "EVIDENCE_REVIEWED_FOR_TRIAL"
+    justification: str = "Charge-sheet preparation and court evidence submission"
+
 

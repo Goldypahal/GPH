@@ -11,8 +11,10 @@ from typing import Dict, Any
 from backend.app.core.config import settings
 from backend.app.services.gov_adapters.vahan_adapter import vahan_adapter
 from backend.app.services.gov_adapters.sarathi_adapter import sarathi_adapter
+from backend.app.services.gov_adapters.cctns_adapter import cctns_adapter
 from backend.app.services.gov_adapters.egujcop_adapter import egujcop_adapter
 from backend.app.services.gov_adapters.afis_adapter import afis_adapter
+from backend.app.services.gov_adapters.nafis_adapter import nafis_adapter
 
 class GovIntelBundleService:
     """
@@ -26,18 +28,22 @@ class GovIntelBundleService:
         """
         vahan_data = vahan_adapter.query(plate_number)
         sarathi_data = sarathi_adapter.query(plate_number)
+        cctns_data = cctns_adapter.query(plate_number)
         egujcop_data = egujcop_adapter.query(plate_number)
         afis_data = afis_adapter.query(plate_number)
+        nafis_data = nafis_adapter.query(plate_number)
 
         # Calculate composite risk score
         score = 15.0
         if vahan_data.get("stolen_flag"):
-            score += 40.0
-        if egujcop_data.get("cctns_registered_match"):
+            score += 35.0
+        if cctns_data.get("national_crime_record_found"):
             score += 25.0
+        if egujcop_data.get("cctns_registered_match"):
+            score += 20.0
         if "NON_BAILABLE" in egujcop_data.get("warrant_status", ""):
             score += 15.0
-        if afis_data.get("biometric_reference_match"):
+        if afis_data.get("biometric_reference_match") or nafis_data.get("nafis_match"):
             score += 15.0
 
         composite_score = min(99.0, max(5.0, score))
@@ -56,8 +62,10 @@ class GovIntelBundleService:
             "plate_number": plate_number.upper(),
             "vahan": vahan_data,
             "sarathi": sarathi_data,
+            "cctns": cctns_data,
             "egujcop": egujcop_data,
             "afis": afis_data,
+            "nafis": nafis_data,
             "composite_risk_score": composite_score,
             "risk_assessment": assessment,
             "retrieved_at": now.isoformat()
@@ -72,3 +80,6 @@ class GovIntelBundleService:
         return payload
 
 gov_intel_bundle_service = GovIntelBundleService()
+intel_bundle_service = gov_intel_bundle_service
+IntelBundleGenerator = GovIntelBundleService
+
