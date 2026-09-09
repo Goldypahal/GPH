@@ -1,88 +1,63 @@
-from typing import Optional, List, Tuple
+from typing import Optional, Tuple
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from backend.app.models.orm import Watchlist, Alert, VehicleSighting, Camera
 from backend.app.services.anpr_engine import ANPREngine
 from backend.app.core.config import settings
-import datetime
 
 class WatchlistMatcher:
-    """
-    Evaluates vehicle plate sightings against active Law Enforcement Watchlists
-    (VAHAN Stolen Registry, eGujCop CCTNS Hotlist, Inter-State BOLO).
-    """
+    """Exact/fuzzy watchlist matching with confidence-aware alert deduplication."""
 
     @classmethod
-    def check_plate(
-        cls,
-        db: Session,
-        sighting: VehicleSighting
-    ) -> Optional[Tuple[Watchlist, str, float]]:
-        """
-        Performs dual-tier lookup:
-        1. Exact match on normalized plate
-        2. Fuzzy match (distance <= threshold) if exact fails
-        Returns (matched_watchlist_entry, match_type, match_confidence) or None.
-        """
-        active_watchlists = db.query(Watchlist).filter(Watchlist.status == "ACTIVE").all()
-        normalized_target = sighting.normalized_plate
-
-        # Step 1: Exact Match
-        for item in active_watchlists:
-            norm_item = ANPREngine.normalize_plate(item.vehicle_number)
-            if norm_item == normalized_target:
-                return item, "EXACT", 1.0
-
-        # Step 2: Fuzzy Match for partially obscured/dirty plates
-        for item in active_watchlists:
-            norm_item = ANPREngine.normalize_plate(item.vehicle_number)
-            distance = ANPREngine.calculate_levenshtein(norm_item, normalized_target)
-            if distance <= settings.FUZZY_MATCH_DISTANCE_THRESHOLD and len(normalized_target) >= 8:
-                # Slight penalty on fuzzy match
-                match_conf = max(0.70, 1.0 - (distance * 0.15))
-                return item, f"FUZZY (dist={distance})", match_conf
-
+    def check_plate(cls, db: Session, sighting: VehicleSighting) -> Optional[Tuple[Watchlist, str, float]]:
+        target = ANPREngine.normalize_plate(sighting.normalized_plate)
+        active = db.query(Watchlist).filter(Watchlist.status == "ACTIVE").all()
+        for item in active:
+            if ANPREngine.normalize_plate(item.vehicle_number) == target:
+                return item, "EXACT", min(1.0, max(0.0, sighting.confidence))
+        for item in active:
+            candidate = ANPREngine.normalize_plate(item.vehicle_number)
+            distance = ANPREngine.calculate_levenshtein(candidate, target)
+            if distance <= settings.FUZZY_MATCH_DISTANCE_THRESHOLD and len(target) >= 8:
+                return item, f"FUZZY (dist={distance})", max(0.70, sighting.confidence - distance * 0.15)
         return None
 
     @classmethod
-    def trigger_alert_if_matched(
-        cls,
-        db: Session,
-        sighting: VehicleSighting
-    ) -> Optional[Alert]:
-        """
-        Evaluates sighting and generates an Alert in the database if matched.
-        """
-        match_result = cls.check_plate(db, sighting)
-        if not match_result:
+    def trigger_alert_if_matched(cls, db: Session, sighting: VehicleSighting) -> Optional[Alert]:
+        match = cls.check_plate(db, sighting)
+        if not match:
             return None
+        item, match_type, match_conf = match
+        existing_for_sighting = db.query(Alert).filter(Alert.sighting_id == sighting.id).first()
+        if existing_for_sighting:
+            return existing_for_sighting
 
-        watchlist_item, match_type, match_conf = match_result
-        
-        # Check if an active alert for this sighting already exists
-        existing = db.query(Alert).filter(Alert.sighting_id == sighting.id).first()
-        if existing:
-            return existing
-
-        now_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d%H%M%S")
-        alert_uid = f"ALT-{now_str}-{sighting.id[:4].upper()}"
+        # Collapse repeated frames from the same camera into one operational incident.
+        window_start = (sighting.timestamp or datetime.now(timezone.utc)) - timedelta(seconds=30)
+        recent = db.query(Alert).join(VehicleSighting, Alert.sighting_id == VehicleSighting.id).filter(
+            Alert.camera_id == sighting.camera_id,
+            Alert.plate_text == sighting.plate_text,
+            Alert.status.in_(["NEW", "ACKNOWLEDGED", "INVESTIGATING"]),
+            VehicleSighting.timestamp >= window_start,
+        ).order_by(Alert.created_at.desc()).first()
+        if recent:
+            recent.remarks = (recent.remarks or "") + f" | Supporting detection {sighting.id[:8]} ({sighting.confidence:.0%})"
+            db.commit(); db.refresh(recent)
+            return recent
 
         camera = db.query(Camera).filter(Camera.id == sighting.camera_id).first()
-        cam_loc = camera.location_name if camera else "Gujarat Highway Checkpoint"
-
-        new_alert = Alert(
+        cam_loc = camera.location_name if camera else "Unknown location"
+        alert_uid = f"ALT-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{sighting.id[:4].upper()}"
+        alert = Alert(
             alert_uid=alert_uid,
-            watchlist_id=watchlist_item.id,
+            watchlist_id=item.id,
             sighting_id=sighting.id,
             camera_id=sighting.camera_id,
             plate_text=sighting.plate_text,
-            risk_level=watchlist_item.risk_level,
+            risk_level=item.risk_level,
             status="NEW",
-            remarks=f"Match Type: {match_type} ({match_conf*100:.0f}% confidence). Reason: {watchlist_item.reason} [FIR: {watchlist_item.case_fir_number}] at {cam_loc}.",
-            dispatched_unit=None,
-            acknowledged_by=None
+            remarks=(f"Match={match_type}; confidence={match_conf:.0%}; source={item.registered_authority}; "
+                     f"reason={item.reason}; FIR={item.case_fir_number}; location={cam_loc}"),
         )
-
-        db.add(new_alert)
-        db.commit()
-        db.refresh(new_alert)
-        return new_alert
+        db.add(alert); db.commit(); db.refresh(alert)
+        return alert
