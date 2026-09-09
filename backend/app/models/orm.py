@@ -298,7 +298,7 @@ class Alert(Base):
 
     id = Column(String(36), primary_key=True, default=gen_uuid)
     alert_uid = Column(String(50), unique=True, nullable=False, index=True)
-    watchlist_id = Column(String(36), ForeignKey("watchlists.id"), nullable=False)
+    watchlist_id = Column(String(36), ForeignKey("watchlists.id"), nullable=True)
     sighting_id = Column(String(36), ForeignKey("vehicle_sightings.id"), nullable=False)
     camera_id = Column(String(36), ForeignKey("cameras.id"), nullable=False)
     plate_text = Column(String(50), nullable=False)

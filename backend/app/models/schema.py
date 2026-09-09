@@ -181,3 +181,79 @@ class ScaleCapacitySimulation(BaseModel):
     central_gpu_servers_needed: int
     hybrid_edge_nodes_needed: int
     estimated_annual_cost_savings_inr_crores: float
+
+# =====================================================================
+# PHASE C: CROSS-CAMERA INTELLIGENCE SCHEMAS
+# =====================================================================
+
+class ContainmentCheckpointOut(BaseModel):
+    checkpoint_name: str
+    district: str
+    lat: float
+    lng: float
+    checkpoint_type: str # "TOLL_PLAZA" | "HIGHWAY_JUNCTION" | "POLICE_CHOWKI" | "INTERCEPT_BARRIER"
+    camera_id: Optional[str] = None
+    distance_km: float
+    eta_sec: float
+    interception_probability_pct: float
+
+class ContainmentIsochroneOut(BaseModel):
+    minutes: int
+    radius_km: float
+    polygon: List[List[float]] # [[lat, lng], ...] polygon ring for GIS mapping
+
+class ContainmentPerimeterOut(BaseModel):
+    plate_number: str
+    origin_lat: float
+    origin_lng: float
+    heading_deg: float
+    speed_kmh: float
+    isochrones: List[ContainmentIsochroneOut]
+    enclosed_camera_ids: List[str]
+    enclosed_camera_count: int
+    intercept_checkpoints: List[ContainmentCheckpointOut]
+    tactical_recommendation: str
+
+class TravelAnomalyOut(BaseModel):
+    anomaly_id: str
+    anomaly_type: str # "CLONED_PLATE" | "EXCESSIVE_SPEED" | "ROUTE_DETOUR"
+    plate_number: str
+    severity: str # "CRITICAL" | "WARNING" | "INFO"
+    description: str
+    camera_a_id: str
+    camera_a_name: str
+    camera_b_id: str
+    camera_b_name: str
+    distance_km: float
+    time_delta_mins: float
+    implied_speed_kmh: float
+    timestamp_a: datetime
+    timestamp_b: datetime
+    alert_raised: bool
+
+class ClonedPlateAlertOut(BaseModel):
+    plate_number: str
+    conflict_type: str # "IMPOSSIBLE_SPEED" | "SIMULTANEOUS_SIGHTINGS"
+    confidence: float
+    latest_sighting_a: Dict[str, Any]
+    latest_sighting_b: Dict[str, Any]
+    implied_speed_kmh: float
+    detected_at: datetime
+    action_required: str
+
+class CameraGraphEdgeOut(BaseModel):
+    from_camera_id: str
+    from_camera_name: str
+    to_camera_id: str
+    to_camera_name: str
+    distance_km: float
+    typical_travel_time_min: float
+    transition_probability: float
+    corridor: str
+
+class CameraGraphOut(BaseModel):
+    total_cameras: int
+    total_corridor_edges: int
+    active_corridors: List[str]
+    edges: List[CameraGraphEdgeOut]
+

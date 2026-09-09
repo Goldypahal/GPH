@@ -95,3 +95,67 @@ def get_recent_sightings(
         results.append(item)
 
     return results
+
+# =====================================================================
+# PHASE C: CROSS-CAMERA INTELLIGENCE ENDPOINTS
+# =====================================================================
+
+from backend.app.models.schema import (
+    ContainmentPerimeterOut, TravelAnomalyOut, ClonedPlateAlertOut, CameraGraphOut
+)
+from backend.app.services.containment import containment_service
+from backend.app.services.anomaly_engine import travel_anomaly_engine
+from backend.app.services.camera_graph import camera_network_graph
+
+@router.get("/containment/{plate}", response_model=ContainmentPerimeterOut)
+def get_pursuit_containment_perimeter(
+    plate: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Computes 5, 10, and 15-minute directional isochrone pursuit perimeters
+    for target vehicle, enclosing surveillance cameras and recommending
+    strategic chokepoints / toll plazas for tactical police interception.
+    """
+    containment = containment_service.compute_containment(db, plate)
+    if not containment:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No active track or sightings found for vehicle '{plate}' — cannot compute containment."
+        )
+    return containment
+
+@router.get("/anomalies/{plate}", response_model=List[TravelAnomalyOut])
+def get_vehicle_travel_anomalies(
+    plate: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Detects spatial-temporal physics anomalies for the target registration:
+    - Cloned Plates / Teleportation (simultaneous or impossible speed transit)
+    - Excessive corridor point-to-point speeding (> 120 km/h)
+    """
+    anomalies = travel_anomaly_engine.evaluate_sightings_for_plate(db, plate, auto_raise_alert=True)
+    return anomalies
+
+@router.get("/cloned-plates", response_model=List[ClonedPlateAlertOut])
+def get_statewide_cloned_plates(
+    db: Session = Depends(get_db)
+):
+    """
+    Returns statewide register of all detected cloned plate conflicts
+    where the same license plate was sighted at distant cameras with
+    impossible transit speed or dual simultaneous active sightings.
+    """
+    return travel_anomaly_engine.get_all_cloned_plate_conflicts(db)
+
+@router.get("/camera-graph", response_model=CameraGraphOut)
+def get_camera_network_graph(
+    db: Session = Depends(get_db)
+):
+    """
+    Returns the statewide camera spatial adjacency topology,
+    corridor road links, and transition probabilities across Gujarat.
+    """
+    return camera_network_graph.get_topology_summary(db)
+
