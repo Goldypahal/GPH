@@ -71,7 +71,6 @@ class RedisStateClient:
         if self._is_connected and self._redis:
             try:
                 self._redis.setex(key, ttl_seconds, val)
-                return True
             except Exception:
                 pass
         with self._lock:

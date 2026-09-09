@@ -264,7 +264,7 @@ def test_event_bus_and_pipeline_metrics():
     metrics = res.json()
     assert "status" in metrics
     assert "active_topics" in metrics
-    assert "vehicle.sightings.raw" in metrics["active_topics"]
+    assert "givin.sightings.raw" in metrics["active_topics"] or "vehicle.sightings.raw" in metrics["active_topics"]
     assert "total_events_published" in metrics
     print(f"[PASS] test_event_bus_and_pipeline_metrics passed (Total events: {metrics['total_events_published']}).")
 

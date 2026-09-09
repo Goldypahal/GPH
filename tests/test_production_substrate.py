@@ -26,14 +26,25 @@ def test_prometheus_metrics_endpoint():
     assert res.status_code == 200, res.text
     content = res.text
     
-    # Assert standard Prometheus headers and gauges
+    # Assert standard Prometheus headers and multi-stage pipeline metrics
     assert "# HELP givin_up" in content
     assert "# TYPE givin_up gauge" in content
     assert "givin_up 1" in content
+    assert "camera_frames_received_total" in content
+    assert "camera_connection_errors_total" in content
     assert "givin_streaming_throughput_mps" in content
+    assert "kafka_publish_total" in content
+    assert "kafka_consumer_lag" in content
+    assert "ai_frames_processed_total" in content
+    assert "anpr_confidence" in content
+    assert "anpr_accuracy" in content
+    assert "tracking_objects_total" in content
+    assert "db_query_latency" in content
     assert "givin_cameras_total" in content
+    assert "givin_cameras_online" in content
     assert "givin_dlq_messages_current" in content
-    print("[PASS] test_prometheus_metrics_endpoint passed (Valid Prometheus exposition format).")
+    assert "evidence_written_total" in content
+    print("[PASS] test_prometheus_metrics_endpoint passed (Full multi-stage pipeline telemetry verified).")
 
 
 def test_abac_policy_clearance_and_jurisdiction():

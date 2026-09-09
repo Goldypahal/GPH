@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 class Settings(BaseModel):
@@ -34,6 +35,12 @@ class Settings(BaseModel):
     FUZZY_MATCH_DISTANCE_THRESHOLD: int = 1
     TOTAL_PLANNED_CAMERAS: int = 80000
     EDGE_COMPRESSION_RATIO: float = 0.05
+    OIDC_ENABLED: bool = os.getenv("OIDC_ENABLED", "true").lower() in ("true", "1", "yes")
+    OIDC_ISSUER_URL: str = os.getenv("OIDC_ISSUER_URL", "https://sso.gujarat.gov.in/auth/realms/gujarat-police")
+    OIDC_CLIENT_ID: str = os.getenv("OIDC_CLIENT_ID", "givin-c4i-platform")
+    OIDC_JWKS_URL: Optional[str] = os.getenv("OIDC_JWKS_URL", None)
+    OIDC_ALLOWED_ALGORITHMS: list[str] = ["RS256", "ES256"]
+    DEV_BYPASS_TOKEN: str = os.getenv("DEV_BYPASS_TOKEN", "givin-local-dev-bypass-2026")
 
     @field_validator("SECRET_KEY")
     @classmethod

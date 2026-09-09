@@ -57,6 +57,7 @@ def test_micro_batch_ingestion_throughput():
         first_cam = db.query(Camera).first()
         cam_id = first_cam.id if first_cam else "CAM-AHM-01"
 
+        micro_batch_worker._buffer.clear()
         burst_size = 20
         unique_plates = []
 

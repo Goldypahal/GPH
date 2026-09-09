@@ -1,7 +1,13 @@
 #!/bin/bash
 # ==============================================================================
 # GIVIN PostGIS 16 Statewide Database Automated Cryptographic Backup Script
-# Conforms to Section 65B Chain of Custody & GSDC Air-Gapped Archival Policies
+# Performs daily WAL-aligned compressed database dumps with SHA-256 integrity verification.
+#
+# Evidentiary & Legal Notice:
+# SHA-256 integrity hashes establish cryptographic custody and tamper detection.
+# Formal legal admissibility and evidentiary certification (such as Section 65B of
+# the Indian Evidence Act / Section 63 of Bharatiya Sakshya Adhiniyam, 2023) are subject to
+# applicable government procedures, authorized certificate authorities, and legal review.
 # ==============================================================================
 
 set -euo pipefail
@@ -21,8 +27,8 @@ pg_dump -h "${PGHOST:-localhost}" \
         -F c -b -v \
         | gzip -9 > "${BACKUP_FILE}"
 
-echo "[INFO] Computing SHA-256 cryptographic seal for Section 65B compliance..."
+echo "[INFO] Computing SHA-256 cryptographic integrity hash for custody tracking..."
 sha256sum "${BACKUP_FILE}" > "${HASH_FILE}"
 
 echo "[SUCCESS] Backup successfully written to ${BACKUP_FILE}"
-echo "[SEAL] SHA-256 Hash: $(cat "${HASH_FILE}")"
+echo "[INTEGRITY_HASH] SHA-256: $(cat "${HASH_FILE}")"

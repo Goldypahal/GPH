@@ -120,6 +120,8 @@ class EventBus:
                 "broker_mode": self._broker_mode,
                 "total_events_published": self._metrics["total_published"],
                 "total_events_processed": self._metrics["total_processed"],
+                "total_published": self._metrics["total_published"],
+                "total_processed": self._metrics["total_processed"],
                 "current_throughput_mps": mps,
                 "average_throughput_mps": avg_mps,
                 "consumer_lag_ms": 1.2,

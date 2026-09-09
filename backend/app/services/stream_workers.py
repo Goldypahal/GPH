@@ -155,6 +155,15 @@ class MicroBatchIngestionWorker:
                     cam = db.query(Camera).first()
                     camera_id = cam.id if cam else "CAM-DEFAULT"
 
+                ts = item.get("timestamp")
+                if isinstance(ts, str):
+                    try:
+                        ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                    except Exception:
+                        ts = datetime.now(timezone.utc)
+                elif not isinstance(ts, datetime):
+                    ts = datetime.now(timezone.utc)
+
                 sighting = VehicleSighting(
                     id=item.get("id") or f"sight-{uuid.uuid4().hex[:8]}",
                     camera_id=camera_id,
@@ -165,7 +174,7 @@ class MicroBatchIngestionWorker:
                     vehicle_type=item.get("vehicle_type", "Car"),
                     vehicle_color=item.get("vehicle_color", "Unknown"),
                     evidence_uri=item.get("evidence_uri"),
-                    timestamp=item.get("timestamp") or datetime.now(timezone.utc)
+                    timestamp=ts
                 )
                 db.add(sighting)
                 db.flush()
