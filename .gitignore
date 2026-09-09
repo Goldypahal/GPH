@@ -16,6 +16,18 @@ ENV/
 # Logs
 *.log
 
+# Evidence/runtime data
+/data/evidence/
+/data/uploads/
+*.pt
+*.onnx
+*.engine
+
+# Secrets
+.env
+.env.*
+!.env.example
+
 # Scratch and OS
 .DS_Store
 Thumbs.db
