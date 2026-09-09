@@ -6,6 +6,7 @@ from backend.app.core.redis_client import redis_state
 from backend.app.services.storage import get_storage
 from backend.app.models.schema import ScaleCapacitySimulation
 from backend.app.services.event_bus import event_bus
+from backend.app.services.vision_pipeline import vision_pipeline
 from backend.app.services.gov_adapters import (
     vahan_adapter,
     sarathi_adapter,
@@ -219,3 +220,9 @@ def get_deployment_readiness():
             "afis": afis_adapter.get_health_status()["status"]
         }
     }
+
+@router.get("/ai-metrics")
+def get_ai_pipeline_metrics():
+    """Real-time Stage 1 + Stage 2 AI Inference, ByteTrack, and Temporal Fusion Telemetry."""
+    return vision_pipeline.get_ai_metrics()
+

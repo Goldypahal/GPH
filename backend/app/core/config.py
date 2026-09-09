@@ -23,6 +23,11 @@ class Settings(BaseModel):
     ])
     GIVIN_VISION_MODE: str = os.getenv("GIVIN_VISION_MODE", "auto").lower()
     GIVIN_STREAM_MODE: str = os.getenv("GIVIN_STREAM_MODE", "real").lower()
+    GIVIN_VEHICLE_MODEL: str = os.getenv("GIVIN_VEHICLE_MODEL", "yolo11n.pt")
+    GIVIN_PLATE_MODEL: str = os.getenv("GIVIN_PLATE_MODEL", "models/anpr_plate_detector.pt")
+    GIVIN_OCR_MODEL: str = os.getenv("GIVIN_OCR_MODEL", "paddleocr")
+    GIVIN_TRACKER_TYPE: str = os.getenv("GIVIN_TRACKER_TYPE", "bytetrack").lower()
+    GIVIN_TEMPORAL_FUSION_WINDOW: int = int(os.getenv("GIVIN_TEMPORAL_FUSION_WINDOW", "10"))
     EVIDENCE_DIR: str = os.getenv("GIVIN_EVIDENCE_DIR", "data/evidence")
     ANPR_CONFIDENCE_THRESHOLD: float = 0.75
     VEHICLE_CONFIDENCE_THRESHOLD: float = 0.70
