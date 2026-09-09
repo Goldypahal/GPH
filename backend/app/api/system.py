@@ -4,7 +4,13 @@ from backend.app.core.config import settings
 from backend.app.core.database import check_db_health
 from backend.app.core.redis_client import redis_state
 from backend.app.services.storage import get_storage
-from backend.app.models.schema import ScaleCapacitySimulation
+from backend.app.models.schema import (
+    ScaleCapacitySimulation,
+    ScaleBenchmarkRunRequest,
+    ScaleBenchmarkRunResponse,
+    ScaleTenderSpecsResponse
+)
+from backend.app.services.benchmarks.scale_benchmark import ScaleBenchmarkEngine
 from backend.app.services.event_bus import event_bus
 from backend.app.services.vision_pipeline import vision_pipeline
 from backend.app.services.gov_adapters import (
@@ -289,3 +295,23 @@ def purge_dead_letter_queue():
     return {"purged_count": count, "status": "DLQ_PURGED"}
 
 
+@router.post("/scale-benchmark/run", response_model=ScaleBenchmarkRunResponse)
+def run_scale_benchmark(payload: ScaleBenchmarkRunRequest = ScaleBenchmarkRunRequest()):
+    """
+    Executes an in-memory stress test streaming synthetic camera sightings through
+    GIVIN's partitioned broker to verify throughput (events/sec) and sub-100ms latency.
+    """
+    res = ScaleBenchmarkEngine.run_synthetic_ingestion_benchmark(
+        camera_count=payload.camera_count or 10000,
+        batch_size=payload.batch_size or 500
+    )
+    return ScaleBenchmarkRunResponse(**(res.model_dump() if hasattr(res, "model_dump") else res.dict()))
+
+
+@router.get("/scale-benchmark/specs", response_model=ScaleTenderSpecsResponse)
+def get_scale_tender_specs():
+    """
+    Provides official Gujarat Police Hackathon 2026 tender compliance architecture specs.
+    """
+    specs = ScaleBenchmarkEngine.get_tender_compliance_specs()
+    return ScaleTenderSpecsResponse(**specs)

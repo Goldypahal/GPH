@@ -342,6 +342,35 @@
                 <span class="stat-sub">District Tiered Buffering</span>
               </div>
             </div>
+
+            <!-- Real-Time 80k Stress Test Panel -->
+            <div style="margin-top:20px; background:#080d18; border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div style="font-size:0.88rem; font-weight:bold; color:var(--accent-cyan);">⚡ LIVE STATEWIDE INGESTION BENCHMARK</div>
+                <button id="btn-run-stress-test" class="quick-tag-btn" style="background:#0ea5e9; color:#000; font-weight:bold;" onclick="runLiveStressTest()">
+                  ⚡ Run Benchmark
+                </button>
+              </div>
+              <div id="stress-test-status" style="font-size:0.8rem; margin-bottom:10px; display:none;"></div>
+              <div id="stress-results-card" style="display:none; grid-template-columns:repeat(4, 1fr); gap:10px;">
+                <div class="stat-card" style="padding:8px 12px;">
+                  <span class="stat-label" style="font-size:0.68rem;">Throughput</span>
+                  <span class="stat-val" style="font-size:1.1rem; color:#34d399;" id="stress-tput">–</span>
+                </div>
+                <div class="stat-card" style="padding:8px 12px;">
+                  <span class="stat-label" style="font-size:0.68rem;">Latency (p95)</span>
+                  <span class="stat-val" style="font-size:1.1rem; color:var(--accent-cyan);" id="stress-lat">–</span>
+                </div>
+                <div class="stat-card" style="padding:8px 12px;">
+                  <span class="stat-label" style="font-size:0.68rem;">Batch Execution</span>
+                  <span class="stat-val" style="font-size:1.1rem; color:#f59e0b;" id="stress-dur">–</span>
+                </div>
+                <div class="stat-card" style="padding:8px 12px;">
+                  <span class="stat-label" style="font-size:0.68rem;">Packet Drops</span>
+                  <span class="stat-val" style="font-size:1.1rem; color:#34d399;" id="stress-loss">0.0%</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -517,6 +546,19 @@
           <button type="submit" class="primary-search-btn">Broadcast to Hotlist</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Unified Government Intelligence Dossier Modal -->
+  <div class="modal-backdrop" id="gov-intel-modal">
+    <div class="modal-box" style="max-width:880px;">
+      <div class="modal-header">
+        <div class="modal-title">Unified Government Intelligence Dossier (VAHAN • SARTHI • eGujCop • AFIS)</div>
+        <button class="modal-close-btn" onclick="closeModal('gov-intel-modal')">&times;</button>
+      </div>
+      <div id="gov-intel-content" style="max-height:550px; overflow-y:auto; padding:10px;">
+        <!-- Rendered dynamically -->
+      </div>
     </div>
   </div>
 

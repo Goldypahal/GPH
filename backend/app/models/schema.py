@@ -364,5 +364,32 @@ class CaseFromAlertRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class ScaleBenchmarkRunRequest(BaseModel):
+    camera_count: Optional[int] = 10000
+    batch_size: Optional[int] = 500
 
 
+class ScaleBenchmarkRunResponse(BaseModel):
+    benchmark_id: str
+    target_camera_count: int
+    total_events_generated: int
+    batch_size: int
+    duration_seconds: float
+    throughput_events_per_sec: float
+    latency_p50_ms: float
+    latency_p95_ms: float
+    latency_p99_ms: float
+    packet_loss_percentage: float
+    memory_used_mb: float
+    cpu_utilization_percentage: float
+    status: str
+    timestamp: str
+
+
+class ScaleTenderSpecsResponse(BaseModel):
+    platform_name: str
+    tender_reference: str
+    statewide_scope: Dict[str, Any]
+    architectural_topology: Dict[str, Any]
+    performance_guarantees: Dict[str, Any]
+    legal_compliance: Dict[str, Any]
