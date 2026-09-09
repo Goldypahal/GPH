@@ -142,3 +142,63 @@ class AuditLog(Base):
     ip_address = Column(String(50), default="127.0.0.1")
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     signature_hash = Column(String(64), nullable=True)
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=False)
+    full_name = Column(String(255), nullable=False)
+    role = Column(String(50), default="INVESTIGATOR") # SUPER_ADMIN, STATE_COMMAND, DISTRICT_OFFICER, CONTROL_ROOM_OPERATOR, INVESTIGATOR, DEPARTMENT_ADMIN, AUDITOR
+    jurisdiction_district = Column(String(100), nullable=True) # None = Statewide, or "Ahmedabad", "Surat", etc.
+    department_code = Column(String(50), default="HOME_POLICE")
+    password_hash = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class Case(Base):
+    __tablename__ = "cases"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    case_number = Column(String(50), unique=True, nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    fir_number = Column(String(100), nullable=True)
+    status = Column(String(50), default="INVESTIGATING") # OPEN, INVESTIGATING, SUBMITTED_TO_COURT, CLOSED
+    priority = Column(String(50), default="HIGH") # CRITICAL, HIGH, MEDIUM, LOW
+    assigned_investigator = Column(String(255), default="Inspector V. Patel")
+    jurisdiction_district = Column(String(100), default="Statewide")
+    target_vehicle_plate = Column(String(50), nullable=False, index=True)
+    created_from_alert_id = Column(String(36), nullable=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    timeline_entries = relationship("CaseTimelineEntry", back_populates="case", cascade="all, delete-orphan")
+    evidence_items = relationship("CaseEvidence", back_populates="case", cascade="all, delete-orphan")
+
+class CaseTimelineEntry(Base):
+    __tablename__ = "case_timeline_entries"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    case_id = Column(String(36), ForeignKey("cases.id"), nullable=False)
+    entry_type = Column(String(50), default="NOTE") # NOTE, SIGHTING, EVIDENCE, STATUS_CHANGE
+    title = Column(String(255), nullable=False)
+    content = Column(Text, nullable=False)
+    created_by = Column(String(255), default="Inspector V. Patel")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    case = relationship("Case", back_populates="timeline_entries")
+
+class CaseEvidence(Base):
+    __tablename__ = "case_evidence"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    case_id = Column(String(36), ForeignKey("cases.id"), nullable=False)
+    sighting_id = Column(String(36), ForeignKey("vehicle_sightings.id"), nullable=False)
+    evidence_hash = Column(String(64), nullable=True)
+    sec_65b_cert_ref = Column(String(100), nullable=True)
+    attached_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    case = relationship("Case", back_populates="evidence_items")
+    sighting = relationship("VehicleSighting")

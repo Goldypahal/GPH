@@ -174,6 +174,100 @@ def test_live_pursuit_feature():
     assert len(pos["trail"]) > 0
     print("[PASS] test_live_pursuit_feature passed.")
 
+def test_auth_and_rbac():
+    """Verify JWT authentication, RBAC authorization, and user profiles."""
+    # Test valid login
+    res = client.post("/api/auth/login", json={"username": "admin", "password": "password123"})
+    assert res.status_code == 200
+    token_data = res.json()
+    assert "access_token" in token_data
+    token = token_data["access_token"]
+    assert token_data["role"] == "SUPER_ADMIN"
+
+    # Test /api/auth/me with Bearer token
+    headers = {"Authorization": f"Bearer {token}"}
+    res_me = client.get("/api/auth/me", headers=headers)
+    assert res_me.status_code == 200
+    me = res_me.json()
+    assert me["username"] == "admin"
+    assert me["role"] == "SUPER_ADMIN"
+
+    # Test invalid password rejected
+    res_bad = client.post("/api/auth/login", json={"username": "admin", "password": "wrongpassword"})
+    assert res_bad.status_code == 401
+
+    print("[PASS] test_auth_and_rbac passed.")
+
+def test_cross_camera_intelligence():
+    """Verify trajectory route confidence scoring and implied speed computation."""
+    res = client.get("/api/tracking/search?plate=GJ01AB1234")
+    assert res.status_code == 200
+    journey = res.json()
+    assert "route_confidence_pct" in journey
+    assert journey["route_confidence_pct"] >= 80.0
+    assert journey["route_status"] in ["VERIFIED_CONTINUOUS", "CONFIRMED", "HIGH_CONFIDENCE"]
+    
+    # Check individual trajectory points for match_method and implied_speed
+    for pt in journey["trajectory"]:
+        assert "match_method" in pt
+        assert "PLATE" in pt["match_method"] or "REID" in pt["match_method"]
+        assert "implied_speed_kmh" in pt
+
+    print(f"[PASS] test_cross_camera_intelligence passed (Route confidence: {journey['route_confidence_pct']}%, Status: {journey['route_status']}).")
+
+def test_gov_adapters():
+    """Verify VAHAN, Sarathi, eGujCop, and AFIS integration adapters."""
+    res = client.get("/api/system/gov-adapters?plate=GJ01AB1234")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["vahan"]["registration_number"] == "GJ01AB1234"
+    assert data["vahan"]["stolen_flag"] is True
+    assert data["sarathi"]["service"] is not None
+    assert data["egujcop"]["cctns_registered_match"] is True
+    assert data["afis"]["biometric_reference_match"] is True
+    print("[PASS] test_gov_adapters passed (All 4 state adapters responded).")
+
+def test_case_management_workflow():
+    """Verify Case creation, timeline entry addition, evidence attachment, and Section 65B dossier generation."""
+    # Login as investigator
+    res_login = client.post("/api/auth/login", json={"username": "inspector_patel", "password": "password123"})
+    token = res_login.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # List cases
+    res_cases = client.get("/api/cases", headers=headers)
+    assert res_cases.status_code == 200
+    cases_list = res_cases.json()
+    assert len(cases_list) >= 1
+    case_id = cases_list[0]["id"]
+
+    # Add a timeline note
+    res_note = client.post(f"/api/cases/{case_id}/notes", json={
+        "title": "Field Surveillance Update",
+        "content": "Bhilad Interstate Checkpost patrol alerted with target vehicle description."
+    }, headers=headers)
+    assert res_note.status_code == 200
+
+    # Fetch court dossier report
+    res_report = client.get(f"/api/cases/{case_id}/report", headers=headers)
+    assert res_report.status_code == 200
+    report = res_report.json()
+    assert "dossier_id" in report
+    assert report["case_number"] == cases_list[0]["case_number"]
+    assert "timeline" in report
+    print(f"[PASS] test_case_management_workflow passed (Case: {report['case_number']}).")
+
+def test_event_bus_and_pipeline_metrics():
+    """Verify asynchronous EventBus topics and /api/system/pipeline-metrics."""
+    res = client.get("/api/system/pipeline-metrics")
+    assert res.status_code == 200
+    metrics = res.json()
+    assert "status" in metrics
+    assert "active_topics" in metrics
+    assert "vehicle.sightings.raw" in metrics["active_topics"]
+    assert "total_events_published" in metrics
+    print(f"[PASS] test_event_bus_and_pipeline_metrics passed (Total events: {metrics['total_events_published']}).")
+
 if __name__ == "__main__":
     print("\n==================================================================")
     print("  RUNNING GIVIN PRODUCTION SUITE TESTS (GUJARAT HACKATHON 2026)")
@@ -187,4 +281,10 @@ if __name__ == "__main__":
     test_alert_lifecycle_action()
     test_camera_onboarding_model1()
     test_live_pursuit_feature()
-    print("\n*** ALL 9 TEST SUITES PASSED WITH 100% SUCCESS!\n")
+    test_auth_and_rbac()
+    test_cross_camera_intelligence()
+    test_gov_adapters()
+    test_case_management_workflow()
+    test_event_bus_and_pipeline_metrics()
+    print("\n*** ALL 14 TEST SUITES PASSED WITH 100% SUCCESS!\n")
+

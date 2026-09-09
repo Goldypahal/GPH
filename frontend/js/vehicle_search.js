@@ -59,12 +59,14 @@ function renderJourneyResults(data) {
     const wl = data.matched_watchlist;
     riskBadge.className = `alert-risk-badge risk-${wl.risk_level}-badge`;
     riskBadge.textContent = `${wl.risk_level} HOTLIST HIT`;
-    descEl.textContent = `CRIME REGISTER: ${wl.reason} [${wl.case_fir_number}] | Registered by ${wl.registered_authority}`;
+    descEl.innerHTML = `CRIME REGISTER: ${wl.reason} [${wl.case_fir_number}] | Registered by ${wl.registered_authority}` +
+      (data.route_confidence_pct ? ` | Route Confidence: <strong style="color:#38bdf8;">${data.route_confidence_pct}% (${data.route_status || 'VERIFIED'})</strong>` : '');
   } else {
     riskBadge.className = "alert-risk-badge";
     riskBadge.style.background = "#10b981";
     riskBadge.textContent = "NORMAL TRANSIT";
-    descEl.textContent = `Vehicle movement correlated across ${data.districts_traversed.join(", ")} without active police hotlist restrictions.`;
+    descEl.innerHTML = `Vehicle movement correlated across ${data.districts_traversed.join(", ")} without active police hotlist restrictions.` +
+      (data.route_confidence_pct ? ` | Route Confidence: <strong style="color:#10b981;">${data.route_confidence_pct}% (${data.route_status || 'VERIFIED'})</strong>` : '');
   }
 
   // Render Chronological Timeline Nodes
@@ -92,7 +94,9 @@ function renderJourneyResults(data) {
               <div class="node-district-tag">${pt.district} District | ${pt.camera_name}</div>
               <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
                 Confidence: ${(pt.confidence * 100).toFixed(1)}% | Estimated Speed: <strong>${pt.speed_kmh} km/h</strong>
+                ${pt.match_method ? ` | <span style="color:#38bdf8; font-weight:600;">[${pt.match_method}]</span>` : ''}
                 ${pt.distance_km ? ` | Segment: +${pt.distance_km} km (${pt.time_delta_mins} mins)` : ''}
+                ${pt.link_status === 'IMPOSSIBLE_SPEED' ? ` | <span style="color:#ef4444; font-weight:bold;">⚠️ IMPOSSIBLE SPEED ANOMALY</span>` : ''}
               </div>
             </div>
 

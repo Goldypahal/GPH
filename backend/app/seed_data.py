@@ -2,9 +2,9 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from backend.app.core.database import SessionLocal, engine, Base
-from backend.app.models.orm import Department, Camera, CameraHealth, VehicleSighting, Watchlist, Alert, AuditLog
+from backend.app.models.orm import Department, Camera, CameraHealth, VehicleSighting, Watchlist, Alert, AuditLog, User, Case, CaseTimelineEntry, CaseEvidence
 from backend.app.services.anpr_engine import ANPREngine
-from backend.app.core.security import generate_sha256_hash, generate_evidence_certificate_hash
+from backend.app.core.security import generate_sha256_hash, generate_evidence_certificate_hash, hash_password
 
 # 26 Gujarat Government Departments
 DEPARTMENTS_DATA = [
@@ -193,9 +193,112 @@ def seed_database():
     db: Session = SessionLocal()
 
     try:
-        # Check if already seeded
+        # Ensure all tables created
+        Base.metadata.create_all(bind=engine)
+
+        # Check if users need seeding
+        if db.query(User).count() == 0:
+            print("Seeding RBAC Users...")
+            default_users = [
+                {
+                    "username": "admin",
+                    "email": "admin@gujarat.gov.in",
+                    "full_name": "State Command Director",
+                    "role": "SUPER_ADMIN",
+                    "jurisdiction_district": None,
+                    "department_code": "HOME_POLICE",
+                    "password": "password123"
+                },
+                {
+                    "username": "inspector_patel",
+                    "email": "v.patel@gujaratpolice.gov.in",
+                    "full_name": "Inspector Vikram Patel",
+                    "role": "INVESTIGATOR",
+                    "jurisdiction_district": "Ahmedabad",
+                    "department_code": "HOME_POLICE",
+                    "password": "password123"
+                },
+                {
+                    "username": "operator_shah",
+                    "email": "p.shah@gujaratpolice.gov.in",
+                    "full_name": "Operator Priya Shah",
+                    "role": "CONTROL_ROOM_OPERATOR",
+                    "jurisdiction_district": "Ahmedabad",
+                    "department_code": "HOME_POLICE",
+                    "password": "password123"
+                },
+                {
+                    "username": "sp_surat",
+                    "email": "sp.surat@gujaratpolice.gov.in",
+                    "full_name": "SP R.K. Mehta",
+                    "role": "DISTRICT_OFFICER",
+                    "jurisdiction_district": "Surat",
+                    "department_code": "HOME_POLICE",
+                    "password": "password123"
+                },
+                {
+                    "username": "auditor_desai",
+                    "email": "auditor@gujarat.gov.in",
+                    "full_name": "Dr. K. Desai (Home Dept Vigilance)",
+                    "role": "AUDITOR",
+                    "jurisdiction_district": None,
+                    "department_code": "HOME_POLICE",
+                    "password": "password123"
+                }
+            ]
+            for u in default_users:
+                user_obj = User(
+                    username=u["username"],
+                    email=u["email"],
+                    full_name=u["full_name"],
+                    role=u["role"],
+                    jurisdiction_district=u["jurisdiction_district"],
+                    department_code=u["department_code"],
+                    password_hash=hash_password(u["password"]),
+                    is_active=True
+                )
+                db.add(user_obj)
+            db.commit()
+            print("RBAC Users seeded successfully.")
+
+        # Check if cases need seeding
+        if db.query(Case).count() == 0:
+            print("Seeding Sample Investigation Case...")
+            sample_case = Case(
+                case_number="CASE-2026-GJ-0042",
+                title="Silver Swift Interstate Interception & Grand Larceny",
+                fir_number="CR-I/2026/0491",
+                status="INVESTIGATING",
+                priority="CRITICAL",
+                assigned_investigator="Inspector Vikram Patel",
+                jurisdiction_district="Ahmedabad",
+                target_vehicle_plate="GJ01AB1234",
+                created_from_alert_id="ALT-SEED-01",
+                description="Vehicle flagged at multiple NH-48 checkposts. Trajectory verified from SG Highway to Bhilad Interstate Border."
+            )
+            db.add(sample_case)
+            db.flush()
+
+            sample_entries = [
+                ("INVESTIGATION_INITIATED", "Case opened following real-time alert trigger at SG Highway ANPR."),
+                ("ROUTE_VERIFIED", "Cross-camera multi-hop trajectory confirmed: Ahmedabad -> Vadodara -> Surat -> Valsad (Bhilad Checkpost). Implied speed within legal thresholds (avg 78.4 km/h)."),
+                ("GOV_INTEL_FETCHED", "eGujCop criminal record match verified: 2 previous vehicle theft priors linked to target.")
+            ]
+            for title, note in sample_entries:
+                tl = CaseTimelineEntry(
+                    case_id=sample_case.id,
+                    entry_type="NOTE",
+                    title=title,
+                    content=note,
+                    created_by="Inspector Vikram Patel"
+                )
+                db.add(tl)
+            db.commit()
+            print("Sample Case seeded successfully.")
+
+        # Check if already seeded base data
         if db.query(Department).count() > 0:
-            print("Database already contains records. Skipping initial seeding.")
+            print("Base camera/department data already present. Seeding check complete.")
             return
 
         print("=== Seeding 26 Gujarat Government Departments ===")
@@ -394,12 +497,108 @@ def seed_database():
             )
             db.add(desig_alert)
 
+        # Create Default RBAC Users
+        print("Seeding RBAC Users...")
+        default_users = [
+            {
+                "username": "admin",
+                "email": "admin@gujarat.gov.in",
+                "full_name": "State Command Director",
+                "role": "SUPER_ADMIN",
+                "jurisdiction_district": None,
+                "department_code": "HOME_POLICE",
+                "password": "password123"
+            },
+            {
+                "username": "inspector_patel",
+                "email": "v.patel@gujaratpolice.gov.in",
+                "full_name": "Inspector Vikram Patel",
+                "role": "INVESTIGATOR",
+                "jurisdiction_district": "Ahmedabad",
+                "department_code": "HOME_POLICE",
+                "password": "password123"
+            },
+            {
+                "username": "operator_shah",
+                "email": "p.shah@gujaratpolice.gov.in",
+                "full_name": "Operator Priya Shah",
+                "role": "CONTROL_ROOM_OPERATOR",
+                "jurisdiction_district": "Ahmedabad",
+                "department_code": "HOME_POLICE",
+                "password": "password123"
+            },
+            {
+                "username": "sp_surat",
+                "email": "sp.surat@gujaratpolice.gov.in",
+                "full_name": "SP R.K. Mehta",
+                "role": "DISTRICT_OFFICER",
+                "jurisdiction_district": "Surat",
+                "department_code": "HOME_POLICE",
+                "password": "password123"
+            },
+            {
+                "username": "auditor_desai",
+                "email": "auditor@gujarat.gov.in",
+                "full_name": "Dr. K. Desai (Home Dept Vigilance)",
+                "role": "AUDITOR",
+                "jurisdiction_district": None,
+                "department_code": "HOME_POLICE",
+                "password": "password123"
+            }
+        ]
+
+        for u in default_users:
+            user_obj = User(
+                username=u["username"],
+                email=u["email"],
+                full_name=u["full_name"],
+                role=u["role"],
+                jurisdiction_district=u["jurisdiction_district"],
+                department_code=u["department_code"],
+                password_hash=hash_password(u["password"]),
+                is_active=True
+            )
+            db.add(user_obj)
+
+        # Create Sample Investigation Case
+        print("Seeding Sample Investigation Case...")
+        sample_case = Case(
+            case_number="CASE-2026-GJ-0042",
+            title="Silver Swift Interstate Interception & Grand Larceny",
+            fir_number="CR-I/2026/0491",
+            status="INVESTIGATING",
+            priority="CRITICAL",
+            assigned_investigator="Inspector Vikram Patel",
+            jurisdiction_district="Ahmedabad",
+            target_vehicle_plate="GJ01AB1234",
+            created_from_alert_id="ALT-SEED-01",
+            description="Vehicle flagged at multiple NH-48 checkposts. Trajectory verified from SG Highway to Bhilad Interstate Border."
+        )
+        db.add(sample_case)
+        db.flush()
+
+        # Add Timeline Entries to Case
+        sample_entries = [
+            ("INVESTIGATION_INITIATED", "Case opened following real-time alert trigger at SG Highway ANPR."),
+            ("ROUTE_VERIFIED", "Cross-camera multi-hop trajectory confirmed: Ahmedabad -> Vadodara -> Surat -> Valsad (Bhilad Checkpost). Implied speed within legal thresholds (avg 78.4 km/h)."),
+            ("GOV_INTEL_FETCHED", "eGujCop criminal record match verified: 2 previous vehicle theft priors linked to target.")
+        ]
+        for title, note in sample_entries:
+            tl = CaseTimelineEntry(
+                case_id=sample_case.id,
+                entry_type="NOTE",
+                title=title,
+                content=note,
+                created_by="Inspector Vikram Patel"
+            )
+            db.add(tl)
+
         # Create Audit Log of Database Ingestion
         audit = AuditLog(
             user_id="SYSTEM_BOOTSTRAP",
             action="INITIAL_SEED",
             resource="DATABASE",
-            details_json="{'status': 'Initialized 26 departments, 50 cameras, and statewide watchlists'}",
+            details_json="{'status': 'Initialized 26 departments, 50 cameras, users, and cases'}",
             signature_hash=generate_sha256_hash(b"SYSTEM_BOOTSTRAP_COMPLETE")
         )
         db.add(audit)

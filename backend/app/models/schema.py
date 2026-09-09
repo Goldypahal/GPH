@@ -131,6 +131,9 @@ class VehicleTrajectoryPoint(BaseModel):
     time_delta_mins: Optional[float] = None
     distance_km: Optional[float] = None
     evidence_uri: Optional[str] = None
+    match_method: Optional[str] = "PLATE_EXACT" # "PLATE_EXACT" | "PLATE_FUZZY" | "VISUAL_REID"
+    link_status: Optional[str] = "VERIFIED_PLAUSIBLE" # "VERIFIED_PLAUSIBLE" | "LOW_CONFIDENCE_LINK" | "IMPOSSIBLE_SPEED"
+    implied_speed_kmh: Optional[float] = None
 
 class VehicleJourneySummary(BaseModel):
     plate_number: str
@@ -142,6 +145,8 @@ class VehicleJourneySummary(BaseModel):
     average_speed_kmh: float
     trajectory: List[VehicleTrajectoryPoint]
     matched_watchlist: Optional[WatchlistOut] = None
+    route_confidence_pct: Optional[float] = 94.0
+    route_status: Optional[str] = "VERIFIED_CONTINUOUS" # "VERIFIED_CONTINUOUS" | "FLAGGED_ANOMALY"
 
 class LivePursuitPosition(BaseModel):
     plate_number: str

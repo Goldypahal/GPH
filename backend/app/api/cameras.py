@@ -46,7 +46,9 @@ def get_camera_detail(camera_id: str, db: Session = Depends(get_db)):
 def onboard_camera(cam_in: CameraBase, db: Session = Depends(get_db)):
     if db.query(Camera).filter(Camera.logical_camera_id == cam_in.logical_camera_id).first():
         raise HTTPException(status_code=409, detail="logical_camera_id already exists")
-    new_cam = Camera(**cam_in.model_dump(), status="ACTIVE")
+    cam_data = cam_in.model_dump()
+    cam_data["status"] = cam_data.get("status") or "ACTIVE"
+    new_cam = Camera(**cam_data)
     db.add(new_cam); db.flush()
     db.add(CameraHealth(camera_id=new_cam.id, latency_ms=42, packet_loss=0.1, cpu_usage=25.0, memory_usage=40.0, status="ONLINE"))
     db.commit(); db.refresh(new_cam)

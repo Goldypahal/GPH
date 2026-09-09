@@ -101,12 +101,28 @@ class VehicleTracker:
 
             delta_mins = None
             dist_km = None
+            implied_speed = None
+            link_status = "VERIFIED_PLAUSIBLE"
 
             if prev_lat is not None and prev_lng is not None and prev_time is not None:
                 dist_km = haversine_distance_km(prev_lat, prev_lng, lat, lng)
                 total_distance += dist_km
                 time_diff = (s.timestamp - prev_time).total_seconds() / 60.0
                 delta_mins = round(time_diff, 1)
+                
+                # Impossible-speed / teleportation filter
+                if time_diff > 0:
+                    implied_speed = round(dist_km / (time_diff / 60.0), 1)
+                    if implied_speed > 180.0:
+                        link_status = "IMPOSSIBLE_SPEED"
+                    elif implied_speed > 130.0:
+                        link_status = "LOW_CONFIDENCE_LINK"
+
+            # Match method classification
+            match_method = "PLATE_EXACT"
+            if s.normalized_plate != normalized_query:
+                dist = ANPREngine.calculate_levenshtein(s.normalized_plate, normalized_query)
+                match_method = f"PLATE_FUZZY (dist={dist})" if dist <= 1 else "VISUAL_REID"
 
             trajectory_points.append(
                 VehicleTrajectoryPoint(
@@ -122,7 +138,10 @@ class VehicleTracker:
                     confidence=s.confidence,
                     time_delta_mins=delta_mins,
                     distance_km=dist_km,
-                    evidence_uri=s.evidence_uri
+                    evidence_uri=s.evidence_uri,
+                    match_method=match_method,
+                    link_status=link_status,
+                    implied_speed_kmh=implied_speed
                 )
             )
 
@@ -133,6 +152,16 @@ class VehicleTracker:
         first_seen = sightings[0].timestamp
         last_seen = sightings[-1].timestamp
         avg_speed = round(sum(s.speed_kmh for s in sightings) / len(sightings), 1)
+
+        # Aggregate Route Confidence calculation
+        has_impossible_speed = any(p.link_status == "IMPOSSIBLE_SPEED" for p in trajectory_points)
+        avg_ocr_conf = sum(p.confidence for p in trajectory_points) / len(trajectory_points)
+        
+        # Base confidence from OCR + corroboration bonus
+        corroboration_bonus = min(10.0, (len(trajectory_points) - 1) * 2.5)
+        penalty = 35.0 if has_impossible_speed else 0.0
+        route_conf = round(max(15.0, min(99.0, (avg_ocr_conf * 90.0) + corroboration_bonus - penalty)), 1)
+        route_status = "FLAGGED_ANOMALY" if has_impossible_speed else "VERIFIED_CONTINUOUS"
 
         # Check watchlist match
         watchlist_match = (
@@ -151,7 +180,9 @@ class VehicleTracker:
             total_estimated_distance_km=round(total_distance, 1),
             average_speed_kmh=avg_speed,
             trajectory=trajectory_points,
-            matched_watchlist=watchlist_out
+            matched_watchlist=watchlist_out,
+            route_confidence_pct=route_conf,
+            route_status=route_status
         )
 
     # ------------------------------------------------------------------
