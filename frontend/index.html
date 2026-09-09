@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GIVIN — Gujarat Integrated Video Intelligence Network | Command Center</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Top Police Command Bar -->
+  <header class="top-nav">
+    <div class="brand-section">
+      <div class="state-emblem">GJ</div>
+      <div>
+        <div class="brand-title">GIVIN <span style="font-size:0.75rem; color:#f59e0b; border:1px solid #f59e0b; padding:1px 6px; border-radius:4px; font-weight:normal;">POLICE C4I</span></div>
+        <div class="brand-subtitle">GUJARAT INTEGRATED VIDEO INTELLIGENCE NETWORK</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="nav-tab-btn active" data-view="gis-view" id="tab-gis">
+        <span>🗺️</span> GIS Map & Registry
+      </button>
+      <button class="nav-tab-btn" data-view="videowall-view" id="tab-videowall">
+        <span>📹</span> Video Wall (Grid)
+      </button>
+      <button class="nav-tab-btn" data-view="tracer-view" id="tab-tracer">
+        <span>🎯</span> Vehicle Journey Tracer
+      </button>
+      <button class="nav-tab-btn" data-view="alerts-view" id="tab-alerts">
+        <span>🚨</span> Watchlists & Alerts <span id="alert-counter-badge" style="background:#ef4444; color:#fff; font-size:0.68rem; padding:1px 6px; border-radius:10px; font-weight:bold;">6</span>
+      </button>
+      <button class="nav-tab-btn" data-view="scale-view" id="tab-scale">
+        <span>⚡</span> 80k Scale Architecture
+      </button>
+    </nav>
+
+    <!-- System Telemetry & Clock -->
+    <div class="system-status-pill">
+      <div class="health-badge">
+        <span class="pulse-dot"></span>
+        <span id="system-status-text">HIGH ASSURANCE OPERATIONAL</span>
+      </div>
+      <div class="time-display" id="realtime-clock">--:--:-- UTC</div>
+    </div>
+  </header>
+
+  <!-- Live Hotlist Alert Ticker Bar -->
+  <div class="alert-ticker-strip">
+    <div class="ticker-lead">
+      <span>🚨 CRITICAL HIT:</span>
+    </div>
+    <div class="ticker-msg" id="ticker-alert-text">
+      [ALT-20260909-VLS1] Stolen Red Swift GJ01AB1234 intercepted at Valsad Bhilad Border Post (Southbound NH-48). Interceptor 12 dispatched.
+    </div>
+    <button class="ticker-btn" onclick="openVehicleJourney('GJ01AB1234')">Trace Route</button>
+  </div>
+
+  <!-- Main Content Container -->
+  <main class="main-content">
+
+    <!-- Stat Metric Cards Row -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Integrated Cameras</span>
+        <span class="stat-val" id="stat-total-cams">50</span>
+        <span class="stat-sub">Across 12 Gujarat Districts</span>
+      </div>
+      <div class="stat-card success-card">
+        <span class="stat-label">Online Status</span>
+        <span class="stat-val" id="stat-online-cams">49</span>
+        <span class="stat-sub">98.0% Network Availability</span>
+      </div>
+      <div class="stat-card alert-card">
+        <span class="stat-label">Active Hotlist Hits</span>
+        <span class="stat-val" id="stat-active-alerts">6</span>
+        <span class="stat-sub">eGujCop / VAHAN Real-time</span>
+      </div>
+      <div class="stat-card warn-card">
+        <span class="stat-label">Governing Depts</span>
+        <span class="stat-val">26</span>
+        <span class="stat-sub">Home, RTO, FCSCA, Ports, Mines</span>
+      </div>
+    </section>
+
+    <!-- VIEW 1: GIS Map & Statewide Camera Registry (Model 1 & 2) -->
+    <section class="view-section active" id="gis-view">
+      <div class="two-col-layout">
+        <!-- GIS Map Panel -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>📍</span> Gujarat Statewide Geospatial Surveillance Map
+            </div>
+            <div class="panel-actions">
+              <button class="quick-tag-btn" onclick="filterMapByDistrict('all')">All State</button>
+              <button class="quick-tag-btn" onclick="filterMapByDistrict('Ahmedabad')">Ahmedabad</button>
+              <button class="quick-tag-btn" onclick="filterMapByDistrict('Surat')">Surat</button>
+              <button class="quick-tag-btn" onclick="filterMapByDistrict('Vadodara')">Vadodara</button>
+              <button class="quick-tag-btn" onclick="filterMapByDistrict('Valsad')">Valsad Border</button>
+            </div>
+          </div>
+          <div id="gis-map-container"></div>
+        </div>
+
+        <!-- Camera Registry Sidebar -->
+        <div class="panel-card" style="display:flex; flex-direction:column;">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>📷</span> Camera Registry (Model 1)
+            </div>
+            <button class="quick-tag-btn" style="background:#0ea5e9; color:#000; font-weight:bold;" onclick="openOnboardModal()">+ Onboard</button>
+          </div>
+          <div style="padding:12px; border-bottom:1px solid var(--border-color);">
+            <input type="text" id="camera-filter-input" class="form-input" placeholder="Search camera, district, vendor..." onkeyup="filterCameraList()">
+          </div>
+          <div style="flex:1; max-height:540px; overflow-y:auto; padding:10px;" id="camera-sidebar-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: Unified Video Wall Matrix (Model 2 & 3) -->
+    <section class="view-section" id="videowall-view">
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>🖥️</span> Unified Live Video Wall & AI Analytics Overlay
+          </div>
+          <div class="videowall-controls">
+            <span style="font-size:0.8rem; color:var(--text-muted);">Matrix Grid:</span>
+            <button class="grid-btn" onclick="setVideoWallGrid(1)">1x1</button>
+            <button class="grid-btn active" onclick="setVideoWallGrid(2)">2x2</button>
+            <button class="grid-btn" onclick="setVideoWallGrid(3)">3x3</button>
+            <button class="grid-btn" onclick="setVideoWallGrid(4)">4x4</button>
+            <button class="quick-tag-btn" style="margin-left:12px;" onclick="refreshVideoStreams()">🔄 Refresh Feeds</button>
+          </div>
+        </div>
+        <div class="videowall-grid grid-2x2" id="videowall-container">
+          <!-- Populated dynamically with live feed tiles -->
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: Designated Vehicle Journey Tracer (Core Hackathon Test Case) -->
+    <section class="view-section" id="tracer-view">
+      <div class="search-bar-hero">
+        <div class="search-input-wrap">
+          <label style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px; display:block;">Target Vehicle Registration Plate Number</label>
+          <input type="text" id="vehicle-search-input" class="search-input-field" placeholder="Enter Registration No. (e.g. GJ01AB1234)" value="GJ01AB1234">
+        </div>
+        <button class="primary-search-btn" onclick="executeVehicleSearch()">
+          <span>🔍</span> Track Vehicle Journey
+        </button>
+      </div>
+
+      <div style="margin-bottom:16px; display:flex; gap:10px; align-items:center;">
+        <span style="font-size:0.8rem; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Evaluation Quick Traces:</span>
+        <button class="quick-tag-btn" onclick="quickSearchVehicle('GJ01AB1234')">GJ01AB1234 (Red Swift - Armed Robbery)</button>
+        <button class="quick-tag-btn" onclick="quickSearchVehicle('GJ06XY9876')">GJ06XY9876 (White Creta - Stolen)</button>
+        <button class="quick-tag-btn" onclick="quickSearchVehicle('GJ05CD5521')">GJ05CD5521 (Black Scorpio - Wanted)</button>
+        <button class="quick-tag-btn" onclick="quickSearchVehicle('GJ27EF8890')">GJ27EF8890 (Blue Truck - Smuggling)</button>
+      </div>
+
+      <!-- Journey Summary Box -->
+      <div id="journey-summary-panel" style="display:none; margin-bottom:20px;">
+        <div class="panel-card" style="border-left: 4px solid var(--accent-cyan); padding:18px 24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+            <div>
+              <div style="display:flex; align-items:center; gap:12px;">
+                <span class="alert-plate" style="font-size:1.4rem;" id="sum-plate">GJ01AB1234</span>
+                <span class="alert-risk-badge risk-CRITICAL-badge" id="sum-risk-badge">CRITICAL HOTLIST HIT</span>
+              </div>
+              <div style="color:var(--text-muted); font-size:0.85rem; margin-top:6px;" id="sum-desc">
+                Suspect vehicle involved in armed robbery. Tracked across 5 Gujarat highway checkpoints.
+              </div>
+            </div>
+            <div style="display:flex; gap:24px;">
+              <div>
+                <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase;">Total Sightings</div>
+                <div style="font-size:1.4rem; font-weight:800; color:#fff;" id="sum-sightings">5</div>
+              </div>
+              <div>
+                <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase;">Distance Traversed</div>
+                <div style="font-size:1.4rem; font-weight:800; color:var(--accent-cyan);" id="sum-distance">367.4 km</div>
+              </div>
+              <div>
+                <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase;">Avg Speed</div>
+                <div style="font-size:1.4rem; font-weight:800; color:var(--accent-amber);" id="sum-speed">70.6 km/h</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chronological Trajectory Cards -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>⏱️</span> Timestamped Location-wise Movement History (Sequence & Evidence)
+          </div>
+          <button class="primary-search-btn" style="padding:6px 16px; font-size:0.82rem;" onclick="showJourneyOnMap()">
+            <span>🗺️</span> Animate Route on GIS Map
+          </button>
+        </div>
+        <div style="padding:16px;" id="journey-nodes-list">
+          <div style="text-align:center; padding:40px; color:var(--text-muted);">
+            Click "Track Vehicle Journey" or one of the evaluation test plates above to reconstruct the suspect's route.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: Watchlists & Real-Time Alert Center -->
+    <section class="view-section" id="alerts-view">
+      <div class="two-col-layout">
+        <!-- Live Alert Dispatch Feed -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>🚨</span> Real-Time Law Enforcement Alarm Dispatch
+            </div>
+            <div class="panel-actions">
+              <button class="quick-tag-btn" style="background:var(--accent-red); color:#fff;" onclick="triggerSimulatedAlert()">+ Simulate Alert</button>
+              <button class="quick-tag-btn" onclick="loadAlerts()">🔄 Refresh</button>
+            </div>
+          </div>
+          <div class="alert-feed-list" id="alert-items-container">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Watchlist Database Registry -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>📋</span> Hotlist Database (VAHAN / eGujCop)
+            </div>
+            <button class="quick-tag-btn" onclick="openAddWatchlistModal()">+ Add Suspect</button>
+          </div>
+          <div style="padding:10px; max-height:580px; overflow-y:auto;" id="watchlist-table-container">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: Statewide Scalability Simulator (~80,000 Cameras) -->
+    <section class="view-section" id="scale-view">
+      <div class="two-col-layout">
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>⚡</span> Statewide Capacity & Sizing Calculator (~80,000 Target)
+            </div>
+          </div>
+          <div style="padding:20px;">
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:20px;">
+              This interactive calculator simulates the Gujarat statewide scale requirements, contrasting brute-force 
+              <strong>Model 4 Central Streaming</strong> against GIVIN's winning <strong>Hybrid Edge-Metadata Architecture</strong>.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">Total Camera Network Size: <span id="scale-cam-val" style="color:var(--accent-cyan); font-weight:800;">80,000</span> Cameras</label>
+              <input type="range" id="scale-cam-slider" min="1000" max="120000" step="1000" value="80000" style="width:100%;" oninput="updateScaleSimulation()">
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+              <div class="form-group">
+                <label class="form-label">Resolution Profile</label>
+                <select id="scale-res-select" class="form-select" onchange="updateScaleSimulation()">
+                  <option value="720p">720p HD (2 Mbps)</option>
+                  <option value="1080p" selected>1080p Full HD (4 Mbps)</option>
+                  <option value="4K">4K Ultra HD (12 Mbps)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Video Retention Period</label>
+                <select id="scale-ret-select" class="form-select" onchange="updateScaleSimulation()">
+                  <option value="7">7 Days (Standard)</option>
+                  <option value="15">15 Days (High Risk)</option>
+                  <option value="30" selected>30 Days (Mandated)</option>
+                  <option value="60">60 Days (Deep Archive)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:18px; margin-top:16px;">
+              <div style="font-size:0.85rem; font-weight:700; color:#fff; margin-bottom:14px; text-transform:uppercase; letter-spacing:0.5px;">Architectural Comparison & Bandwidth Consumption</div>
+              
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-size:0.85rem; color:#f87171;">Model 4 (Brute Central Streaming):</span>
+                <span style="font-family:var(--font-mono); font-size:1.15rem; font-weight:800; color:#f87171;" id="calc-central-bw">320.0 Gbps</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-size:0.85rem; color:#34d399;">GIVIN Hybrid Edge Architecture:</span>
+                <span style="font-family:var(--font-mono); font-size:1.15rem; font-weight:800; color:#34d399;" id="calc-hybrid-bw">5.44 Gbps</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:10px;">
+                <span style="font-size:0.85rem; font-weight:700; color:#fff;">Bandwidth Reduction:</span>
+                <span style="font-family:var(--font-mono); font-size:1.25rem; font-weight:800; color:var(--accent-cyan);" id="calc-savings-pct">98.3%</span>
+              </div>
+            </div>
+
+            <div style="margin-top:18px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+              <div class="stat-card success-card" style="padding:12px 16px;">
+                <span class="stat-label">Estimated Annual Cost Savings</span>
+                <span class="stat-val" style="font-size:1.4rem;" id="calc-savings-cost">₹187.2 Cr</span>
+                <span class="stat-sub">Network bandwidth + GPU compute</span>
+              </div>
+              <div class="stat-card" style="padding:12px 16px;">
+                <span class="stat-label">Storage Optimization</span>
+                <span class="stat-val" style="font-size:1.4rem;" id="calc-storage-pb">103.6 PB</span>
+                <span class="stat-sub">District Tiered Buffering</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3-Tier Architecture Diagram & Audit Log -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>🏛️</span> 3-Tier Statewide Deployment Topology
+            </div>
+          </div>
+          <div style="padding:20px; font-size:0.82rem; line-height:1.6; color:var(--text-muted);">
+            <div style="background:#080d18; border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:14px; font-family:var(--font-mono);">
+              <div style="color:var(--accent-cyan); font-weight:bold;">TIER 1: 33 DISTRICT EDGE CLUSTERS</div>
+              <div>- Multi-vendor NVRs & RTSP ingestion (CP Plus, Hikvision, Dahua, Axis)</div>
+              <div>- Real-time Edge AI: Vehicle Detection + ANPR character extraction</div>
+              <div>- 15-30 days local ring buffer storage; zero continuous central streaming</div>
+            </div>
+
+            <div style="background:#080d18; border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:14px; font-family:var(--font-mono);">
+              <div style="color:var(--accent-amber); font-weight:bold;">TIER 2: 4 REGIONAL INTELLIGENCE HUBS</div>
+              <div>- North, South, Central, Saurashtra-Kutch regional broker clusters</div>
+              <div>- Inter-district correlation and high-speed plate deduplication</div>
+              <div>- VAHAN & eGujCop hotlist caching for sub-millisecond lookups</div>
+            </div>
+
+            <div style="background:#080d18; border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:14px; font-family:var(--font-mono);">
+              <div style="color:var(--accent-green); font-weight:bold;">TIER 3: STATE COMMAND & CONTROL (GANDHINAGAR)</div>
+              <div>- Statewide C4I Video Wall, GIS Mapping, and Cross-District Journey Tracer</div>
+              <div>- Section 65B Digital Evidence Certification & Audit Vault</div>
+              <div>- Low-latency on-demand video pull only during verified alerts</div>
+            </div>
+
+            <button class="primary-search-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="viewAuditTrail()">
+              <span>🔒</span> View Cryptographic Audit Log Vault
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Section 65B Digital Evidence Certificate Modal -->
+  <div class="modal-backdrop" id="cert-modal">
+    <div class="modal-box" style="max-width:850px;">
+      <div class="modal-header">
+        <div class="modal-title">Certificate of Electronic Evidence (Section 65B)</div>
+        <button class="modal-close-btn" onclick="closeModal('cert-modal')">&times;</button>
+      </div>
+      <div id="cert-content-render">
+        <!-- Rendered dynamically -->
+      </div>
+      <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:12px;">
+        <button class="quick-tag-btn" onclick="closeModal('cert-modal')">Close</button>
+        <button class="primary-search-btn" onclick="window.print()">Print / Export PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Camera Onboarding Modal (Model 1 Registry) -->
+  <div class="modal-backdrop" id="onboard-modal">
+    <div class="modal-box" style="max-width:600px;">
+      <div class="modal-header">
+        <div class="modal-title">Onboard Heterogeneous Camera (Model 1 Registry)</div>
+        <button class="modal-close-btn" onclick="closeModal('onboard-modal')">&times;</button>
+      </div>
+      <form id="onboard-form" onsubmit="submitOnboardCamera(event)">
+        <div class="form-group">
+          <label class="form-label">Camera Logical Code</label>
+          <input type="text" id="onboard-code" class="form-input" placeholder="CAM-GJ-AHM-08" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Camera Name / Description</label>
+          <input type="text" id="onboard-name" class="form-input" placeholder="Pakwan Crossroad ANPR Gate" required>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">District</label>
+            <input type="text" id="onboard-district" class="form-input" placeholder="Ahmedabad" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department</label>
+            <select id="onboard-dept" class="form-select">
+              <option value="HOME_POLICE">Home Department (Police)</option>
+              <option value="RTO_TRANS">RTO & Transport</option>
+              <option value="FCSCA">Food & Civil Supplies</option>
+              <option value="GMB">Gujarat Maritime Board</option>
+              <option value="AMC">Ahmedabad Municipal Corp</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Latitude</label>
+            <input type="number" step="0.0001" id="onboard-lat" class="form-input" placeholder="23.0335" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Longitude</label>
+            <input type="number" step="0.0001" id="onboard-lng" class="form-input" placeholder="72.5122" required>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Hardware Vendor</label>
+            <select id="onboard-vendor" class="form-select">
+              <option value="Hikvision">Hikvision</option>
+              <option value="Dahua">Dahua</option>
+              <option value="CP Plus">CP Plus</option>
+              <option value="Axis">Axis</option>
+              <option value="Honeywell">Honeywell</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stream Protocol</label>
+            <select id="onboard-proto" class="form-select">
+              <option value="RTSP">RTSP</option>
+              <option value="ONVIF">ONVIF</option>
+              <option value="VMS-API">VMS-API</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:12px;">
+          <button type="button" class="quick-tag-btn" onclick="closeModal('onboard-modal')">Cancel</button>
+          <button type="submit" class="primary-search-btn">Register Camera</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Watchlist Suspect Modal -->
+  <div class="modal-backdrop" id="watchlist-modal">
+    <div class="modal-box" style="max-width:600px;">
+      <div class="modal-header">
+        <div class="modal-title">Register Suspect Vehicle to Watchlist</div>
+        <button class="modal-close-btn" onclick="closeModal('watchlist-modal')">&times;</button>
+      </div>
+      <form id="watchlist-form" onsubmit="submitAddWatchlist(event)">
+        <div class="form-group">
+          <label class="form-label">Vehicle Registration Number</label>
+          <input type="text" id="wl-plate" class="form-input" placeholder="GJ01XX9999" required style="font-family:var(--font-mono); text-transform:uppercase;">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Make / Model</label>
+            <input type="text" id="wl-model" class="form-input" placeholder="Maruti Swift" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Color</label>
+            <input type="text" id="wl-color" class="form-input" placeholder="White" required>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Risk Level</label>
+            <select id="wl-risk" class="form-select">
+              <option value="CRITICAL">CRITICAL</option>
+              <option value="HIGH" selected>HIGH</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="LOW">LOW</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Case FIR Number</label>
+            <input type="text" id="wl-fir" class="form-input" placeholder="FIR-2026/0441" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason / Crime Details</label>
+          <textarea id="wl-reason" class="form-input" rows="3" placeholder="Suspect vehicle wanted in connection with..." required></textarea>
+        </div>
+        <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:12px;">
+          <button type="button" class="quick-tag-btn" onclick="closeModal('watchlist-modal')">Cancel</button>
+          <button type="submit" class="primary-search-btn">Broadcast to Hotlist</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Audit Log Modal -->
+  <div class="modal-backdrop" id="audit-modal">
+    <div class="modal-box" style="max-width:850px;">
+      <div class="modal-header">
+        <div class="modal-title">Immutable Security & Access Audit Vault</div>
+        <button class="modal-close-btn" onclick="closeModal('audit-modal')">&times;</button>
+      </div>
+      <div style="max-height:500px; overflow-y:auto;" id="audit-table-content">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet GIS Script -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- GIVIN Application Scripts -->
+  <script src="/static/js/app.js"></script>
+  <script src="/static/js/map.js"></script>
+  <script src="/static/js/videowall.js"></script>
+  <script src="/static/js/vehicle_search.js"></script>
+  <script src="/static/js/alerts.js"></script>
+  <script src="/static/js/watchlist.js"></script>
+  <script src="/static/js/evidence_modal.js"></script>
+  <script src="/static/js/scale_calculator.js"></script>
+
+</body>
+</html>

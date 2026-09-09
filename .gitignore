@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Scratch and OS
+.DS_Store
+Thumbs.db
+*.tmp
+analysis_summary.txt
+srs_summary.txt
