@@ -367,12 +367,20 @@ class CaseFromAlertRequest(BaseModel):
 class ScaleBenchmarkRunRequest(BaseModel):
     camera_count: Optional[int] = 10000
     batch_size: Optional[int] = 500
+    max_events: Optional[int] = 20000
 
 
 class ScaleBenchmarkRunResponse(BaseModel):
     benchmark_id: str
+    benchmark_type: str
+    execution_engine: str
+    git_commit: str
+    environment: Dict[str, Any]
     target_camera_count: int
+    events_requested: int
     total_events_generated: int
+    events_accepted: int
+    events_failed: int
     batch_size: int
     duration_seconds: float
     throughput_events_per_sec: float
@@ -383,6 +391,7 @@ class ScaleBenchmarkRunResponse(BaseModel):
     memory_used_mb: float
     cpu_utilization_percentage: float
     status: str
+    methodology_disclaimer: str
     timestamp: str
 
 
@@ -391,5 +400,7 @@ class ScaleTenderSpecsResponse(BaseModel):
     tender_reference: str
     statewide_scope: Dict[str, Any]
     architectural_topology: Dict[str, Any]
-    performance_guarantees: Dict[str, Any]
+    performance_targets: Dict[str, Any]
+    benchmark_methodology: Optional[Dict[str, Any]] = None
     legal_compliance: Dict[str, Any]
+

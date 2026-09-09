@@ -9,6 +9,8 @@ import math
 import uuid
 import psutil
 import os
+import platform
+import subprocess
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
@@ -40,12 +42,23 @@ class ArchitectureComparisonModel(BaseModel):
     storage_savings_percentage: float
     estimated_annual_cost_savings_inr_crores: float
     verdict: str
+    
+    # Credibility Annotations
+    tco_disclaimer: str
+    bandwidth_model_assumptions: str
 
 
 class SyntheticBenchmarkResult(BaseModel):
     benchmark_id: str
+    benchmark_type: str
+    execution_engine: str
+    git_commit: str
+    environment: Dict[str, Any]
     target_camera_count: int
+    events_requested: int
     total_events_generated: int
+    events_accepted: int
+    events_failed: int
     batch_size: int
     duration_seconds: float
     throughput_events_per_sec: float
@@ -56,6 +69,7 @@ class SyntheticBenchmarkResult(BaseModel):
     memory_used_mb: float
     cpu_utilization_percentage: float
     status: str
+    methodology_disclaimer: str
     timestamp: str
 
 
@@ -81,35 +95,27 @@ class ScaleBenchmarkEngine:
 
         # 1. Centralized Model 4 (Brute Force Video Streaming)
         central_bw_gbps = round((camera_count * bitrate_mbps) / 1000.0, 2)
-        # Storage = camera_count * (bitrate in bytes/sec) * 86400 * retention_days / 10^15 (PB)
         daily_bytes_per_cam = (bitrate_mbps * 1_000_000 / 8) * 86400
         central_storage_pb = round((camera_count * daily_bytes_per_cam * retention_days) / 1e15, 2)
-        # GPUs: Modern L40S/A100 runs ~16 streams of 1080p 25fps YOLO detection
         central_gpus = int(math.ceil(camera_count / 16.0))
-        # Network leased lines: ~₹25,000/Gbps/month = ₹0.03 Cr/Gbps/yr
+        
+        # Illustrative procurement estimation
         network_cost_cr = central_bw_gbps * 0.30
-        # GPU servers + power + rack space: ~₹2.5 Lakh/server/yr = ₹0.025 Cr
-        compute_cost_cr = (central_gpus / 4) * 0.12  # 4 GPUs per server
-        # Storage: ~₹15 Lakh/PB/yr = ₹0.15 Cr
+        compute_cost_cr = (central_gpus / 4) * 0.12
         storage_cost_cr = central_storage_pb * 0.15
         central_annual_cost_cr = round(network_cost_cr + compute_cost_cr + storage_cost_cr, 2)
 
         # 2. GIVIN Hybrid Edge Architecture
-        # Edge streams only 1.2 KB JSON sightings + 35 KB crop on alert (~2% hit rate)
-        # 80k cams * 2 sightings/sec avg * 1.2 KB * 8 = 1.536 Gbps
         metadata_bw_gbps = (camera_count * 2 * 1200 * 8) / 1e9
         alert_burst_bw_gbps = (camera_count * 0.02 * 35000 * 8) / 1e9
-        hybrid_bw_gbps = round(metadata_bw_gbps + alert_burst_bw_gbps + 0.5, 2)  # +0.5 Gbps headroom
+        hybrid_bw_gbps = round(metadata_bw_gbps + alert_burst_bw_gbps + 0.5, 2)
         
-        # Central storage: metadata logs + alert crops = 2% of central storage
         hybrid_storage_pb = round(max(0.5, central_storage_pb * 0.02), 2)
-        # Central compute: 16 Kubernetes micro-batch worker nodes
         hybrid_nodes = 16
-        # Hybrid annual operating cost
         hybrid_network_cost_cr = hybrid_bw_gbps * 0.30
         hybrid_compute_cost_cr = hybrid_nodes * 0.04
         hybrid_storage_cost_cr = hybrid_storage_pb * 0.15
-        hybrid_annual_cost_cr = round(hybrid_network_cost_cr + hybrid_compute_cost_cr + hybrid_storage_cost_cr + 12.0, 2) # +12 Cr edge fleet mgmt
+        hybrid_annual_cost_cr = round(hybrid_network_cost_cr + hybrid_compute_cost_cr + hybrid_storage_cost_cr + 12.0, 2)
 
         # Savings
         bw_savings_pct = round(((central_bw_gbps - hybrid_bw_gbps) / central_bw_gbps) * 100.0, 1)
@@ -133,40 +139,69 @@ class ScaleBenchmarkEngine:
             bandwidth_savings_percentage=bw_savings_pct,
             storage_savings_percentage=storage_savings_pct,
             estimated_annual_cost_savings_inr_crores=cost_savings_cr,
-            verdict="HYBRID_EDGE_ARCHITECTURE_HIGHLY_SUPERIOR"
+            verdict="MODELED_HYBRID_EDGE_ARCHITECTURE_HIGHLY_SUPERIOR",
+            tco_disclaimer="Illustrative TCO model — preliminary engineering estimation subject to vendor quotes and government procurement validation.",
+            bandwidth_model_assumptions="Derived estimate based on 2 sightings/sec/cam, 1.2 KB JSON metadata, 2% alert hit rate (35 KB crop), +0.5 Gbps headroom."
         )
 
     @classmethod
     def run_synthetic_ingestion_benchmark(
         cls,
         camera_count: int = 10000,
-        batch_size: int = 500
+        batch_size: int = 500,
+        max_events: Optional[int] = 20000
     ) -> SyntheticBenchmarkResult:
         """
-        Executes an in-memory stress test streaming thousands of synthetic camera sighting events
-        through the GIVIN partitioned stream broker. Measures end-to-end throughput and latency percentiles.
+        Executes an in-process synthetic ingestion stress test streaming synthetic camera sightings
+        through the application event bus. Measures individual per-event latency, throughput, and packet acceptance.
         """
         benchmark_id = f"BM-{uuid.uuid4().hex[:8].upper()}"
 
-        # Capture initial resource usage
+        # Capture git commit hash for reproducibility
+        git_commit = "2be7be6"
+        try:
+            git_commit = subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=os.path.dirname(__file__),
+                text=True,
+                timeout=1
+            ).strip()
+        except Exception:
+            pass
+
+        # Capture environment specs
+        env = {
+            "os": platform.platform(),
+            "python": platform.python_version(),
+            "cpu_logical_cores": psutil.cpu_count(logical=True),
+            "system_ram_gb": round(psutil.virtual_memory().total / (1024 ** 3), 2)
+        }
+
+        # Resource baseline
         process = psutil.Process(os.getpid())
         mem_before = process.memory_info().rss / (1024 * 1024)
 
-        latencies_ms: List[float] = []
-        start_time = time.perf_counter()
+        # Event bounds
+        events_requested = camera_count
+        if max_events is not None and max_events > 0:
+            total_events = min(camera_count, max_events)
+        else:
+            total_events = camera_count
 
-        # Generate and push synthetic micro-batches
-        total_events = min(camera_count, 20000)  # capped for responsive API test execution
-        num_batches = int(math.ceil(total_events / batch_size))
-
+        num_batches = int(math.ceil(total_events / max(1, batch_size)))
         sample_plates = ["GJ01AB1234", "GJ05CD5678", "GJ06EF9012", "GJ27GH3456", "DL01XY9999"]
 
+        latencies_ms: List[float] = []
+        events_accepted = 0
+        events_failed = 0
+
+        start_time = time.perf_counter()
+
         for b in range(num_batches):
-            b_start = time.perf_counter()
             current_batch_count = min(batch_size, total_events - (b * batch_size))
 
             for i in range(current_batch_count):
-                cam_idx = (b * batch_size + i) % 80000
+                cam_idx = (b * batch_size + i) % max(1, camera_count)
                 cam_id = f"CAM-GJ-{cam_idx:05d}"
                 plate = sample_plates[i % len(sample_plates)]
 
@@ -179,44 +214,62 @@ class ScaleBenchmarkEngine:
                     "speed_kmh": 62.5,
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 }
-                event_bus.publish(event_bus.TOPIC_SIGHTINGS_RAW, payload)
 
-            b_duration = (time.perf_counter() - b_start) * 1000.0  # ms
-            per_item_latency = b_duration / max(1, current_batch_count)
-            latencies_ms.extend([per_item_latency] * current_batch_count)
+                # Measure true individual event publish/acceptance latency
+                t0 = time.perf_counter()
+                try:
+                    event_bus.publish(event_bus.TOPIC_SIGHTINGS_RAW, payload)
+                    latencies_ms.append((time.perf_counter() - t0) * 1000.0)
+                    events_accepted += 1
+                except Exception:
+                    events_failed += 1
 
         total_duration = time.perf_counter() - start_time
         mem_after = process.memory_info().rss / (1024 * 1024)
         cpu_pct = psutil.cpu_percent(interval=None)
 
-        # Calculate percentiles
+        # Calculate empirical percentiles from real per-event timing
         latencies_ms.sort()
-        p50 = latencies_ms[int(len(latencies_ms) * 0.50)] if latencies_ms else 0.1
-        p95 = latencies_ms[int(len(latencies_ms) * 0.95)] if latencies_ms else 0.5
-        p99 = latencies_ms[int(len(latencies_ms) * 0.99)] if latencies_ms else 1.2
+        n = len(latencies_ms)
+        p50 = latencies_ms[int(n * 0.50)] if n > 0 else 0.0
+        p95 = latencies_ms[int(n * 0.95)] if n > 0 else 0.0
+        p99 = latencies_ms[int(n * 0.99)] if n > 0 else 0.0
 
-        throughput = round(total_events / max(0.001, total_duration), 1)
+        throughput = round(total_events / max(0.0001, total_duration), 1)
+        loss_pct = round((events_failed / max(1, total_events)) * 100.0, 3)
 
         return SyntheticBenchmarkResult(
             benchmark_id=benchmark_id,
+            benchmark_type="APPLICATION_LAYER_SYNTHETIC_INGESTION",
+            execution_engine=event_bus._broker_mode,
+            git_commit=git_commit,
+            environment=env,
             target_camera_count=camera_count,
+            events_requested=events_requested,
             total_events_generated=total_events,
+            events_accepted=events_accepted,
+            events_failed=events_failed,
             batch_size=batch_size,
             duration_seconds=round(total_duration, 4),
             throughput_events_per_sec=throughput,
             latency_p50_ms=round(p50, 3),
             latency_p95_ms=round(p95, 3),
             latency_p99_ms=round(p99, 3),
-            packet_loss_percentage=0.0,
-            memory_used_mb=round(mem_after - mem_before, 2),
+            packet_loss_percentage=loss_pct,
+            memory_used_mb=round(max(0.0, mem_after - mem_before), 2),
             cpu_utilization_percentage=cpu_pct,
-            status="PASSED_HIGH_ASSURANCE",
+            status="PASSED_IN_PROCESS_INTEGRATION_TEST",
+            methodology_disclaimer=(
+                "This is an application-layer synthetic benchmark measuring in-process broker dispatch and queuing. "
+                "It does not measure physical 80k-camera WAN propagation latency or multi-broker Kafka cluster disk I/O, "
+                "which must be validated during staged infrastructure acceptance testing."
+            ),
             timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     @classmethod
     def get_tender_compliance_specs(cls) -> Dict[str, Any]:
-        """Provides formal technical compliance specs for Gujarat Police Hackathon 2026."""
+        """Provides formal technical compliance specs with explicit target vs measured labeling."""
         return {
             "platform_name": "GIVIN - Gujarat Integrated Video Intelligence Network",
             "tender_reference": "Gujarat Police Innovation Hackathon 2026 - Problem Statement #1",
@@ -232,13 +285,17 @@ class ScaleBenchmarkEngine:
                 "tier_2_regional": "Regional Kafka Broker Clusters (Plate dedup + inter-district correlation)",
                 "tier_3_statewide": "Gandhinagar State C4I Cloud (Cross-camera graph, AI pursuit radar, Section 65B vault)"
             },
-            "performance_guarantees": {
-                "anpr_latency_edge": "< 30 ms per frame",
-                "statewide_cross_camera_correlation_latency": "< 150 ms",
-                "hotlist_match_latency": "< 5 ms (Redis in-memory set)",
-                "cloned_plate_detection_time": "< 2 seconds across 80,000 cameras",
-                "wan_bandwidth_consumption": "5.44 Gbps statewide (vs 320 Gbps brute streaming)",
-                "packet_loss_tolerance": "Zero data loss (Kafka multi-replica + Dead Letter Queue)"
+            "performance_targets": {
+                "anpr_latency_edge": "< 30 ms per frame (Engineering Target: requires GPU/NPU edge accelerator, 1080p, 25fps)",
+                "statewide_cross_camera_correlation_latency": "< 150 ms (Engineering Target: spatial graph lookup in clustered Redis)",
+                "hotlist_match_latency": "< 5 ms (Engineering Target: in-memory Redis SET intersection)",
+                "cloned_plate_detection_time": "< 2 seconds (Engineering Target: across 80,000 registered nodes via sliding temporal window)",
+                "wan_bandwidth_consumption": "5.44 Gbps statewide (Derived estimate: based on 80k cameras streaming metadata + on-demand alert crops vs 320 Gbps brute streaming)",
+                "packet_loss_tolerance": "Zero data loss target (Architecture: Kafka multi-replica partitions + Dead Letter Queue isolation)"
+            },
+            "benchmark_methodology": {
+                "tier_a_application_benchmark": "In-process synthetic broker ingestion (tested via /scale-benchmark/run)",
+                "tier_b_infrastructure_benchmark": "Physical multi-node Kafka/PostGIS cluster acceptance testing (staged deployment)"
             },
             "legal_compliance": {
                 "indian_evidence_act": "Section 65B cryptographic digital chain of custody with SHA-256",

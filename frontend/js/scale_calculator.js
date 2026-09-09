@@ -51,7 +51,7 @@ async function runLiveStressTest() {
     const res = await fetch("/api/system/scale-benchmark/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ camera_count: camCount, batch_size: 500 })
+      body: JSON.stringify({ camera_count: camCount, batch_size: 500, max_events: 10000 })
     });
 
     if (res.ok) {
@@ -59,19 +59,30 @@ async function runLiveStressTest() {
       if (resultsCard) resultsCard.style.display = "grid";
       
       const tputElem = document.getElementById("stress-tput");
-      if (tputElem) tputElem.textContent = `${data.throughput_events_per_sec.toLocaleString()} events/sec`;
+      if (tputElem) tputElem.textContent = `${data.throughput_events_per_sec.toLocaleString()} MPS`;
 
       const latElem = document.getElementById("stress-lat");
-      if (latElem) latElem.textContent = `${data.latency_p95_ms} ms (p95)`;
+      if (latElem) latElem.textContent = `${data.latency_p95_ms} ms`;
 
       const durElem = document.getElementById("stress-dur");
-      if (durElem) durElem.textContent = `${data.duration_seconds}s (${data.total_events_generated.toLocaleString()} events)`;
+      if (durElem) durElem.textContent = `${data.events_accepted.toLocaleString()} / ${data.total_events_generated.toLocaleString()}`;
 
       const lossElem = document.getElementById("stress-loss");
-      if (lossElem) lossElem.textContent = `${data.packet_loss_percentage}% (Zero Loss)`;
+      if (lossElem) lossElem.textContent = `${data.packet_loss_percentage}%`;
+
+      const noteElem = document.getElementById("stress-methodology-note");
+      if (noteElem) {
+        noteElem.style.display = "block";
+        noteElem.innerHTML = `
+          <div><strong>Engine:</strong> ${data.execution_engine}</div>
+          <div><strong>Benchmark Type:</strong> ${data.benchmark_type} (Git: ${data.git_commit})</div>
+          <div><strong>Host Env:</strong> ${data.environment.os || 'N/A'}, Python ${data.environment.python}, ${data.environment.cpu_logical_cores} Cores, ${data.environment.system_ram_gb} GB RAM</div>
+          <div style="margin-top:4px; color:#cbd5e1;"><em>${data.methodology_disclaimer}</em></div>
+        `;
+      }
 
       if (statusElem) {
-        statusElem.innerHTML = `<span style="color:#34d399; font-weight:bold;">✔ STRESS TEST PASSED: Processed ${data.total_events_generated.toLocaleString()} sightings across ${data.target_camera_count.toLocaleString()} camera streams at ${data.throughput_events_per_sec.toLocaleString()} MPS with 0% drops.</span>`;
+        statusElem.innerHTML = `<span style="color:#34d399; font-weight:bold;">✔ TEST COMPLETE: Processed ${data.events_accepted.toLocaleString()} events (${data.target_camera_count.toLocaleString()} device identities modeled) at ${data.throughput_events_per_sec.toLocaleString()} MPS. Real per-event p95 latency: ${data.latency_p95_ms}ms.</span>`;
       }
     } else {
       if (statusElem) statusElem.innerHTML = `<span style="color:#ef4444;">Stress test failed with HTTP ${res.status}</span>`;
@@ -82,7 +93,7 @@ async function runLiveStressTest() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "⚡ Run Real-Time Ingestion Benchmark";
+      btn.textContent = "⚡ Run Benchmark";
     }
   }
 }

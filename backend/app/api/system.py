@@ -298,12 +298,13 @@ def purge_dead_letter_queue():
 @router.post("/scale-benchmark/run", response_model=ScaleBenchmarkRunResponse)
 def run_scale_benchmark(payload: ScaleBenchmarkRunRequest = ScaleBenchmarkRunRequest()):
     """
-    Executes an in-memory stress test streaming synthetic camera sightings through
-    GIVIN's partitioned broker to verify throughput (events/sec) and sub-100ms latency.
+    Executes an in-process synthetic ingestion stress test measuring individual per-event
+    latency (p50/p95/p99), empirical throughput (MPS), and packet acceptance across synthetic camera fleets.
     """
     res = ScaleBenchmarkEngine.run_synthetic_ingestion_benchmark(
         camera_count=payload.camera_count or 10000,
-        batch_size=payload.batch_size or 500
+        batch_size=payload.batch_size or 500,
+        max_events=payload.max_events
     )
     return ScaleBenchmarkRunResponse(**(res.model_dump() if hasattr(res, "model_dump") else res.dict()))
 

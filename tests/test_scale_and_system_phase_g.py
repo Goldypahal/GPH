@@ -37,24 +37,33 @@ def test_scale_mathematical_model():
     assert model.hybrid_edge_storage_petabytes < 5.0
     assert model.bandwidth_savings_percentage >= 95.0
     assert model.storage_savings_percentage >= 95.0
-    assert model.estimated_annual_cost_savings_inr_crores > 100.0  # > ₹100 Crores
-    assert model.verdict == "HYBRID_EDGE_ARCHITECTURE_HIGHLY_SUPERIOR"
+    assert model.estimated_annual_cost_savings_inr_crores > 100.0  # > INR 100 Crores
+    assert "MODELED" in model.verdict
+    assert "Illustrative TCO" in model.tco_disclaimer
+    assert "Derived estimate" in model.bandwidth_model_assumptions
     print(f"[PASS] test_scale_mathematical_model passed (Savings: {model.bandwidth_savings_percentage}% BW, INR {model.estimated_annual_cost_savings_inr_crores} Cr/yr).")
 
 
 def test_synthetic_scale_ingestion_throughput():
-    """Validates in-memory high-concurrency event ingestion across synthetic camera fleets."""
+    """Validates in-process real per-event latency, throughput, and packet acceptance."""
     res = ScaleBenchmarkEngine.run_synthetic_ingestion_benchmark(
         camera_count=5000,
-        batch_size=250
+        batch_size=250,
+        max_events=5000
     )
 
     assert res.total_events_generated == 5000
-    assert res.throughput_events_per_sec > 1000.0  # Fast in-memory pipeline
+    assert res.events_accepted == 5000
+    assert res.events_failed == 0
+    assert res.throughput_events_per_sec > 1000.0  # In-process pipeline throughput
+    assert res.latency_p95_ms > 0.0  # True empirical per-event latency measured
     assert res.latency_p95_ms < 50.0  # Sub-50ms p95 latency
     assert res.packet_loss_percentage == 0.0
-    assert res.status == "PASSED_HIGH_ASSURANCE"
-    print(f"[PASS] test_synthetic_scale_ingestion_throughput passed (Throughput: {res.throughput_events_per_sec:,.0f} MPS, p95: {res.latency_p95_ms}ms).")
+    assert "IN_PROCESS" in res.status
+    assert res.benchmark_type == "APPLICATION_LAYER_SYNTHETIC_INGESTION"
+    assert res.git_commit != ""
+    assert res.environment["cpu_logical_cores"] > 0
+    print(f"[PASS] test_synthetic_scale_ingestion_throughput passed (Throughput: {res.throughput_events_per_sec:,.0f} MPS, real per-event p95: {res.latency_p95_ms}ms).")
 
 
 def test_scale_benchmark_api_endpoints():
@@ -62,14 +71,18 @@ def test_scale_benchmark_api_endpoints():
     # 1. Run live benchmark via API
     post_res = client.post(
         "/api/system/scale-benchmark/run",
-        json={"camera_count": 2000, "batch_size": 200}
+        json={"camera_count": 2000, "batch_size": 200, "max_events": 2000}
     )
     assert post_res.status_code == 200, post_res.text
     run_data = post_res.json()
     assert run_data["target_camera_count"] == 2000
     assert run_data["total_events_generated"] == 2000
-    assert run_data["status"] == "PASSED_HIGH_ASSURANCE"
+    assert run_data["events_accepted"] == 2000
+    assert run_data["events_failed"] == 0
+    assert "IN_PROCESS" in run_data["status"]
     assert run_data["packet_loss_percentage"] == 0.0
+    assert run_data["benchmark_type"] == "APPLICATION_LAYER_SYNTHETIC_INGESTION"
+    assert "This is an application-layer synthetic benchmark" in run_data["methodology_disclaimer"]
 
     # 2. Query formal tender compliance specs
     specs_res = client.get("/api/system/scale-benchmark/specs")
@@ -78,8 +91,10 @@ def test_scale_benchmark_api_endpoints():
     assert specs["statewide_scope"]["target_cameras"] == 80000
     assert specs["statewide_scope"]["governing_departments"] == 26
     assert specs["statewide_scope"]["districts_covered"] == 33
+    assert "performance_targets" in specs
+    assert "< 30 ms" in specs["performance_targets"]["anpr_latency_edge"]
     assert "Section 65B" in specs["legal_compliance"]["indian_evidence_act"]
-    print(f"[PASS] test_scale_benchmark_api_endpoints passed (Live stress test & tender specs verified).")
+    print(f"[PASS] test_scale_benchmark_api_endpoints passed (Live stress test & tender specs verified with explicit targets).")
 
 
 def test_end_to_end_scale_calculator_api():

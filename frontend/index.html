@@ -280,13 +280,17 @@
           <div class="panel-header">
             <div class="panel-title">
               <span>⚡</span> Statewide Capacity & Sizing Calculator (~80,000 Target)
+              <span class="quick-tag-btn" style="background:#0f172a; color:#38bdf8; font-size:0.68rem; margin-left:8px; border:1px solid #0284c7;">MODELED SIZING</span>
             </div>
           </div>
           <div style="padding:20px;">
-            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:20px;">
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;">
               This interactive calculator simulates the Gujarat statewide scale requirements, contrasting brute-force 
-              <strong>Model 4 Central Streaming</strong> against GIVIN's winning <strong>Hybrid Edge-Metadata Architecture</strong>.
+              <strong>Model 4 Central Streaming</strong> against GIVIN's <strong>Hybrid Edge-Metadata Architecture</strong>.
             </p>
+            <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:16px; background:#0b1329; padding:8px 12px; border-radius:6px; border-left:3px solid #0284c7;">
+              ℹ️ <strong>Methodology:</strong> Sizing calculations are based on derived traffic models (2 sightings/sec/cam, 1.2 KB metadata, 2% alert crop burst). Physical 80k-camera validation is performed during staged multi-node infrastructure acceptance.
+            </div>
 
             <div class="form-group">
               <label class="form-label">Total Camera Network Size: <span id="scale-cam-val" style="color:var(--accent-cyan); font-weight:800;">80,000</span> Cameras</label>
@@ -314,7 +318,10 @@
             </div>
 
             <div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:18px; margin-top:16px;">
-              <div style="font-size:0.85rem; font-weight:700; color:#fff; margin-bottom:14px; text-transform:uppercase; letter-spacing:0.5px;">Architectural Comparison & Bandwidth Consumption</div>
+              <div style="font-size:0.85rem; font-weight:700; color:#fff; margin-bottom:14px; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between;">
+                <span>Architectural Comparison & Bandwidth Consumption</span>
+                <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">[DERIVED ESTIMATE]</span>
+              </div>
               
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <span style="font-size:0.85rem; color:#f87171;">Model 4 (Brute Central Streaming):</span>
@@ -325,44 +332,47 @@
                 <span style="font-family:var(--font-mono); font-size:1.15rem; font-weight:800; color:#34d399;" id="calc-hybrid-bw">5.44 Gbps</span>
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:10px;">
-                <span style="font-size:0.85rem; font-weight:700; color:#fff;">Bandwidth Reduction:</span>
+                <span style="font-size:0.85rem; font-weight:700; color:#fff;">Modeled Bandwidth Reduction:</span>
                 <span style="font-family:var(--font-mono); font-size:1.25rem; font-weight:800; color:var(--accent-cyan);" id="calc-savings-pct">98.3%</span>
               </div>
             </div>
 
             <div style="margin-top:18px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
               <div class="stat-card success-card" style="padding:12px 16px;">
-                <span class="stat-label">Estimated Annual Cost Savings</span>
+                <span class="stat-label">Illustrative Annual Cost Savings</span>
                 <span class="stat-val" style="font-size:1.4rem;" id="calc-savings-cost">₹187.2 Cr</span>
-                <span class="stat-sub">Network bandwidth + GPU compute</span>
+                <span class="stat-sub">* Preliminary TCO model subject to vendor quotes</span>
               </div>
               <div class="stat-card" style="padding:12px 16px;">
                 <span class="stat-label">Storage Optimization</span>
                 <span class="stat-val" style="font-size:1.4rem;" id="calc-storage-pb">103.6 PB</span>
-                <span class="stat-sub">District Tiered Buffering</span>
+                <span class="stat-sub">Central metadata vs District ring buffering</span>
               </div>
             </div>
 
-            <!-- Real-Time 80k Stress Test Panel -->
+            <!-- Real-Time In-Process Stress Test Panel -->
             <div style="margin-top:20px; background:#080d18; border:1px solid var(--border-color); border-radius:10px; padding:16px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <div style="font-size:0.88rem; font-weight:bold; color:var(--accent-cyan);">⚡ LIVE STATEWIDE INGESTION BENCHMARK</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                <div>
+                  <span style="font-size:0.88rem; font-weight:bold; color:var(--accent-cyan);">⚡ IN-PROCESS SYNTHETIC INGESTION BENCHMARK</span>
+                  <span class="quick-tag-btn" style="background:#1e293b; color:#f59e0b; font-size:0.65rem; margin-left:6px;">APPLICATION LAYER</span>
+                </div>
                 <button id="btn-run-stress-test" class="quick-tag-btn" style="background:#0ea5e9; color:#000; font-weight:bold;" onclick="runLiveStressTest()">
                   ⚡ Run Benchmark
                 </button>
               </div>
-              <div id="stress-test-status" style="font-size:0.8rem; margin-bottom:10px; display:none;"></div>
+              <div id="stress-test-status" style="font-size:0.78rem; margin-bottom:10px; display:none;"></div>
               <div id="stress-results-card" style="display:none; grid-template-columns:repeat(4, 1fr); gap:10px;">
                 <div class="stat-card" style="padding:8px 12px;">
-                  <span class="stat-label" style="font-size:0.68rem;">Throughput</span>
+                  <span class="stat-label" style="font-size:0.68rem;">Throughput (MPS)</span>
                   <span class="stat-val" style="font-size:1.1rem; color:#34d399;" id="stress-tput">–</span>
                 </div>
                 <div class="stat-card" style="padding:8px 12px;">
-                  <span class="stat-label" style="font-size:0.68rem;">Latency (p95)</span>
+                  <span class="stat-label" style="font-size:0.68rem;">Per-Event Latency (p95)</span>
                   <span class="stat-val" style="font-size:1.1rem; color:var(--accent-cyan);" id="stress-lat">–</span>
                 </div>
                 <div class="stat-card" style="padding:8px 12px;">
-                  <span class="stat-label" style="font-size:0.68rem;">Batch Execution</span>
+                  <span class="stat-label" style="font-size:0.68rem;">Events Accepted</span>
                   <span class="stat-val" style="font-size:1.1rem; color:#f59e0b;" id="stress-dur">–</span>
                 </div>
                 <div class="stat-card" style="padding:8px 12px;">
@@ -370,6 +380,7 @@
                   <span class="stat-val" style="font-size:1.1rem; color:#34d399;" id="stress-loss">0.0%</span>
                 </div>
               </div>
+              <div id="stress-methodology-note" style="display:none; margin-top:10px; font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono); background:#060a12; padding:8px; border-radius:4px;"></div>
             </div>
           </div>
         </div>
