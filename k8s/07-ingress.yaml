@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: givin-ingress
+  namespace: givin-system
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "givin-api-service"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/limit-rps: "1000"
+spec:
+  tls:
+    - hosts:
+        - c4i.police.gujarat.gov.in
+        - givin.gujarat.gov.in
+      secretName: givin-tls-certificates
+  rules:
+    - host: c4i.police.gujarat.gov.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: givin-api-service
+                port:
+                  number: 8000
+    - host: givin.gujarat.gov.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: givin-api-service
+                port:
+                  number: 8000

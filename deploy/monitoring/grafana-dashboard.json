@@ -1,0 +1,66 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "title": "GIVIN System Health Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "givin_up", "format": "time_series" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "OPERATIONAL", "color": "green" }, "0": { "text": "DEGRADED", "color": "red" } } }
+          ]
+        }
+      }
+    },
+    {
+      "title": "Statewide Cameras Online",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [{ "expr": "givin_cameras_online", "format": "time_series" }]
+    },
+    {
+      "title": "Real-Time Streaming Ingestion (MPS)",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [{ "expr": "givin_streaming_throughput_mps", "format": "time_series" }],
+      "fieldConfig": { "defaults": { "min": 0, "max": 10000, "unit": "mps" } }
+    },
+    {
+      "title": "Dead Letter Queue (Quarantined Messages)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [{ "expr": "givin_dlq_messages_current", "format": "time_series" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } }
+    },
+    {
+      "title": "Ingestion Throughput Over Time (MPS)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [{ "expr": "givin_streaming_throughput_mps", "legendFormat": "Throughput MPS" }]
+    },
+    {
+      "title": "Published vs Processed Messages",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        { "expr": "rate(givin_streaming_published_total[1m])", "legendFormat": "Published Rate (msg/s)" },
+        { "expr": "rate(givin_streaming_processed_total[1m])", "legendFormat": "Processed Rate (msg/s)" }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["givin", "c4i", "gujarat-police"],
+  "time": { "from": "now-15m", "to": "now" },
+  "title": "GIVIN C4I Statewide Surveillance Observability Dashboard",
+  "uid": "givin-c4i-observability"
+}

@@ -1,0 +1,131 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: givin-api-service
+  namespace: givin-system
+  labels:
+    app: givin-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+  selector:
+    app: givin-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: givin-api
+  namespace: givin-system
+  labels:
+    app: givin-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: givin-api
+  template:
+    metadata:
+      labels:
+        app: givin-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/api/system/metrics"
+    spec:
+      containers:
+        - name: givin-api
+          image: givin/c4i-server:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: givin-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: givin-secrets
+                  key: POSTGRES_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: givin-secrets
+                  key: JWT_SECRET
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: givin-secrets
+                  key: MINIO_ROOT_USER
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: givin-secrets
+                  key: MINIO_ROOT_PASSWORD
+            - name: HMAC_SIGNING_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: givin-secrets
+                  key: HMAC_SIGNING_KEY
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+            limits:
+              cpu: "4000m"
+              memory: "8Gi"
+          readinessProbe:
+            httpGet:
+              path: /api/system/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /api/system/health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: givin-api-hpa
+  namespace: givin-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: givin-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: givin-api-pdb
+  namespace: givin-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: givin-api

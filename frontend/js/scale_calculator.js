@@ -82,7 +82,7 @@ async function runLiveStressTest() {
       }
 
       if (statusElem) {
-        statusElem.innerHTML = `<span style="color:#34d399; font-weight:bold;">✔ TEST COMPLETE: Processed ${data.events_accepted.toLocaleString()} events (${data.target_camera_count.toLocaleString()} device identities modeled) at ${data.throughput_events_per_sec.toLocaleString()} MPS. Real per-event p95 latency: ${data.latency_p95_ms}ms.</span>`;
+        statusElem.innerHTML = `<span style="color:#34d399; font-weight:bold;">✔ TEST COMPLETE: Processed ${data.events_accepted.toLocaleString()} events (80K Modeled Sizing → ${data.events_accepted.toLocaleString()}-event application execution sample) at ${data.throughput_events_per_sec.toLocaleString()} MPS. Real per-event p95 latency: ${data.latency_p95_ms}ms.</span>`;
       }
     } else {
       if (statusElem) statusElem.innerHTML = `<span style="color:#ef4444;">Stress test failed with HTTP ${res.status}</span>`;

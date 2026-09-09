@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-postgis
+  namespace: givin-system
+  labels:
+    app: postgres-postgis
+spec:
+  ports:
+    - port: 5432
+      name: postgres
+  clusterIP: None
+  selector:
+    app: postgres-postgis
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-postgis
+  namespace: givin-system
+spec:
+  serviceName: postgres-postgis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-postgis
+  template:
+    metadata:
+      labels:
+        app: postgres-postgis
+    spec:
+      containers:
+        - name: postgis
+          image: postgis/postgis:16-3.4
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: "givin_statewide"
+            - name: POSTGRES_USER
+              value: "givin_admin"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: givin-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            requests:
+              cpu: "4000m"
+              memory: "8Gi"
+            limits:
+              cpu: "8000m"
+              memory: "16Gi"
+          readinessProbe:
+            exec:
+              command:
+                - "/bin/sh"
+                - "-c"
+                - "pg_isready -U givin_admin -d givin_statewide"
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - "/bin/sh"
+                - "-c"
+                - "pg_isready -U givin_admin -d givin_statewide"
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: postgis-storage
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: postgis-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "gp3-nvme"
+        resources:
+          requests:
+            storage: 500Gi
