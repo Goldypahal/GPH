@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Query
 from backend.app.core.config import settings
 from backend.app.core.database import check_db_health
@@ -225,4 +225,55 @@ def get_deployment_readiness():
 def get_ai_pipeline_metrics():
     """Real-time Stage 1 + Stage 2 AI Inference, ByteTrack, and Temporal Fusion Telemetry."""
     return vision_pipeline.get_ai_metrics()
+
+# =====================================================================
+# PHASE E: RESILIENT EVENT STREAMING & DLQ ENDPOINTS
+# =====================================================================
+
+from backend.app.models.schema import StreamingMetricsOut, DLQMessageOut, DLQReplayResult
+from backend.app.services.stream_workers import dlq_manager, micro_batch_worker
+from backend.app.core.database import SessionLocal
+
+@router.get("/events/metrics", response_model=StreamingMetricsOut)
+def get_event_streaming_metrics():
+    """
+    Returns real-time Kafka/Stream Broker performance telemetry:
+    throughput (MPS), total published, total consumed, active topic depths, and DLQ size.
+    """
+    return event_bus.get_pipeline_metrics()
+
+@router.get("/events/dlq", response_model=List[DLQMessageOut])
+def get_dead_letter_queue_messages(limit: int = 50):
+    """
+    Inspects quarantined poison pills and failed DB commit events in the Dead Letter Queue.
+    """
+    return dlq_manager.list_messages(limit=limit)
+
+@router.post("/events/dlq/replay", response_model=DLQReplayResult)
+def replay_dead_letter_queue_messages(max_count: int = 50):
+    """
+    Reprocesses quarantined events through the ingestion pipeline.
+    Removes successfully recovered events from the DLQ.
+    """
+    db = SessionLocal()
+    try:
+        def reprocessor(topic: str, payload: dict) -> bool:
+            if topic in (event_bus.TOPIC_SIGHTINGS_RAW, event_bus.TOPIC_LEGACY_RAW):
+                micro_batch_worker.enqueue_sighting(payload)
+                micro_batch_worker.flush_batch(db)
+                return True
+            event_bus.publish(topic, payload)
+            return True
+
+        result = dlq_manager.replay_messages(reprocess_func=reprocessor, max_count=max_count)
+        return result
+    finally:
+        db.close()
+
+@router.delete("/events/dlq")
+def purge_dead_letter_queue():
+    """Purges all messages currently held in the Dead Letter Queue."""
+    count = dlq_manager.purge()
+    return {"purged_count": count, "status": "DLQ_PURGED"}
+
 

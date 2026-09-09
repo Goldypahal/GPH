@@ -313,4 +313,34 @@ class RoleScopeOut(BaseModel):
     description: str
     scopes: List[str]
 
+# =====================================================================
+# PHASE E: RESILIENT EVENT STREAMING & DLQ SCHEMAS
+# =====================================================================
+
+class DLQMessageOut(BaseModel):
+    message_id: str
+    original_topic: str
+    payload: Dict[str, Any]
+    error_reason: str
+    failed_at: datetime
+    retry_count: int
+
+class DLQReplayResult(BaseModel):
+    replayed_count: int
+    failed_count: int
+    status: str
+    message: str
+
+class StreamingMetricsOut(BaseModel):
+    broker_mode: str
+    total_events_published: int
+    total_events_processed: int
+    current_throughput_mps: float
+    average_throughput_mps: float
+    consumer_lag_ms: float
+    active_topics: Dict[str, int]
+    dlq_size: int
+    status: str
+
+
 
