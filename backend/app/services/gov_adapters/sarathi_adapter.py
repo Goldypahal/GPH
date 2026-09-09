@@ -8,10 +8,9 @@ class SARATHIAdapter(BaseGovAdapter):
     def __init__(self):
         super().__init__("SARTHI Driver License Database", "https://sarathi.parivahan.gov.in/api/v1/license")
 
-    def query(self, dl_or_plate: str) -> Dict[str, Any]:
+    def _fetch_data(self, clean_id: str) -> Dict[str, Any]:
         return {
-            "service": self.service_name,
-            "license_number": f"GJ01-20200019283",
+            "license_number": f"GJ01-202000{clean_id[-4:] if len(clean_id) >= 4 else '1928'}",
             "license_holder": "K. V. Raman",
             "valid_from": "2020-01-10",
             "valid_to": "2040-01-09",

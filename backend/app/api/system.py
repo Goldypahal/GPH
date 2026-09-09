@@ -99,6 +99,18 @@ def get_gov_adapters_status(plate: Optional[str] = None):
         res["afis"] = afis_adapter.query(plate)
     return res
 
+from backend.app.models.schema import GovIntelBundleOut
+from backend.app.services.gov_adapters.bundle import gov_intel_bundle_service
+
+@router.get("/gov/intel-bundle/{plate}", response_model=GovIntelBundleOut)
+def get_unified_government_intel_bundle(plate: str):
+    """
+    Simultaneously queries VAHAN, SARTHI, eGujCop/CCTNS, and AFIS/NAFIS,
+    returning a unified, cryptographically signed Section 65B intelligence dossier.
+    """
+    return gov_intel_bundle_service.query_intel_bundle(plate)
+
+
 @router.get("/scale-empirical")
 def get_empirical_benchmarks():
     """

@@ -177,7 +177,42 @@ class RedisStateClient:
             if key in self._fallback_store:
                 if time.time() <= self._fallback_ttls.get(key, float("inf")):
                     return json.loads(self._fallback_store[key])
+    # =========================================================================
+    # Generic Key-Value Cache Interface
+    # =========================================================================
+
+    def get(self, key: str) -> Optional[str]:
+        """Generic get for string values."""
+        if self._is_connected and self._redis:
+            try:
+                val = self._redis.get(key)
+                if val is not None:
+                    return val if isinstance(val, str) else val.decode("utf-8")
+            except Exception:
+                pass
+        with self._lock:
+            if key in self._fallback_store:
+                if time.time() <= self._fallback_ttls.get(key, float("inf")):
+                    return self._fallback_store[key]
+                else:
+                    del self._fallback_store[key]
+                    if key in self._fallback_ttls:
+                        del self._fallback_ttls[key]
         return None
+
+    def set(self, key: str, value: str, ttl_seconds: int = 3600) -> bool:
+        """Generic set with TTL in seconds."""
+        if self._is_connected and self._redis:
+            try:
+                self._redis.set(key, value, ex=ttl_seconds)
+                return True
+            except Exception:
+                pass
+        with self._lock:
+            self._fallback_store[key] = value
+            self._fallback_ttls[key] = time.time() + ttl_seconds
+        return True
 
 # Singleton client
 redis_state = RedisStateClient()
+

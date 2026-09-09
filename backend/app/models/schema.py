@@ -342,5 +342,27 @@ class StreamingMetricsOut(BaseModel):
     dlq_size: int
     status: str
 
+# =====================================================================
+# PHASE F: GOVERNMENT INTEL & CASE WORKFLOW SCHEMAS
+# =====================================================================
+
+class GovIntelBundleOut(BaseModel):
+    plate_number: str
+    vahan: Dict[str, Any]
+    sarathi: Dict[str, Any]
+    egujcop: Dict[str, Any]
+    afis: Dict[str, Any]
+    composite_risk_score: float
+    risk_assessment: str
+    source_signature_hash: str
+    retrieved_at: datetime
+
+class CaseFromAlertRequest(BaseModel):
+    title: Optional[str] = None
+    assigned_investigator: Optional[str] = "Inspector V. Patel"
+    priority: Optional[str] = "HIGH"
+    notes: Optional[str] = None
+
+
 
 

@@ -9,13 +9,11 @@ class EGujCopAdapter(BaseGovAdapter):
     def __init__(self):
         super().__init__("eGujCop (Gujarat Police CCTNS)", "https://police.gujarat.gov.in/cctns/api/v2/crimes")
 
-    def query(self, plate_or_fir: str) -> Dict[str, Any]:
-        cleaned = plate_or_fir.replace("-", "").upper()
-        is_hit = "GJ01AB1234" in cleaned or "GJ05CD5521" in cleaned or "GJ06XY9876" in cleaned
+    def _fetch_data(self, clean_id: str) -> Dict[str, Any]:
+        is_hit = any(k in clean_id for k in ["01AB1234", "05CD5521", "06XY9876", "CLONE", "THEFT", "ROBBERY"])
 
         return {
-            "service": self.service_name,
-            "query_key": cleaned,
+            "query_key": clean_id,
             "cctns_registered_match": is_hit,
             "associated_fir": "FIR-2026/AHM-CRIME/0981" if is_hit else None,
             "police_station": "Crime Branch, Ahmedabad City",

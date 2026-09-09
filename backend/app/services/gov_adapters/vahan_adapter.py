@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from backend.app.services.gov_adapters.base import BaseGovAdapter
 
 class VAHANAdapter(BaseGovAdapter):
@@ -10,23 +10,21 @@ class VAHANAdapter(BaseGovAdapter):
     def __init__(self):
         super().__init__("VAHAN National Vehicle Registry", "https://vahan.parivahan.gov.in/api/v4/vehicle")
 
-    def query(self, plate_number: str) -> Dict[str, Any]:
-        cleaned = plate_number.replace("-", "").upper()
-        # Representative synthetic data contract
+    def _fetch_data(self, clean_id: str) -> Dict[str, Any]:
+        is_stolen = any(k in clean_id for k in ["01AB1234", "06XY9876", "CLONE", "THEFT"])
         return {
-            "service": self.service_name,
-            "registration_number": cleaned,
+            "registration_number": clean_id,
             "owner_name": "Rameshwar Sharma (Masked per DPDP Act)",
             "vehicle_class": "Motor Car (LMV)",
             "maker_model": "Maruti Suzuki Swift VXI",
             "fuel_type": "Petrol",
-            "chassis_number": f"MA3EXXXXXX{cleaned[-4:]}",
-            "engine_number": f"K12MXXXX{cleaned[-4:]}",
+            "chassis_number": f"MA3EXXXXXX{clean_id[-4:] if len(clean_id) >= 4 else '0000'}",
+            "engine_number": f"K12MXXXX{clean_id[-4:] if len(clean_id) >= 4 else '0000'}",
             "registration_date": "2022-04-14",
             "fitness_valid_until": "2037-04-13",
             "insurance_status": "ACTIVE",
             "pds_commercial_carrier": False,
-            "stolen_flag": True if "01AB1234" in cleaned or "06XY9876" in cleaned else False,
+            "stolen_flag": is_stolen,
             "rto_jurisdiction": "GJ-01 (Ahmedabad RTO)"
         }
 
