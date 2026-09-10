@@ -1,0 +1,214 @@
+﻿# Low-Level Design (LLD) Document
+## Gujarat Integrated Video Intelligence Network (GIVIN)
+**Document Classification:** Confidential / Law Enforcement Technical Specification  
+**Version:** 1.2  
+**Target Environment:** Gujarat State Data Centre (GSDC) / Police Netram C4I  
+
+---
+
+## 1. System Overview & Architectural Boundaries
+
+The **Gujarat Integrated Video Intelligence Network (GIVIN)** provides an enterprise-grade, statewide video ingestion, AI analytics, and spatiotemporal tracking platform across 26 independent government departments.
+
+```
++---------------------------------------------------------------------------------------------------+
+|                                 GIVIN LOW-LEVEL COMPONENT PIPELINE                                |
++---------------------------------------------------------------------------------------------------+
+|                                                                                                   |
+|  [CAMERA CONNECTOR ENGINE]                                                                        |
+|  - RTSP / RTSPS / HTTP Connector Factory (Threaded Ingest, Frame Sampler)                         |
+|  - 7-Stage Lifecycle: REGISTER -> VALIDATE -> CONNECT -> AUTH -> HEALTH -> STREAM -> AI_ENABLED   |
+|                                     |                                                             |
+|                                     v                                                             |
+|  [AI VISION & ANPR PIPELINE]                                                                      |
+|  - Object Detector (YOLOv8 / MobileNet) -> Classify: Car, Truck, Bus, Motorcycle, Auto           |
+|  - ByteTrack Local Motion Tracker -> Stable Track IDs within Camera Field of View                 |
+|  - Plate Detector (HSRP Bounding Box) -> CLAHE Preprocessing & Bilateral Deskewing                |
+|  - OCR Engine (Tesseract / PaddleOCR / Regex Filter) -> Multi-Frame Temporal Confidence Fusion    |
+|                                     |                                                             |
+|                                     v                                                             |
+|  [EVENT STREAMING & DISPATCH BACKBONE]                                                            |
+|  - Kafka / KRaft Topics: givin.sightings.raw, givin.sightings.normalized, givin.alerts.triggered    |
+|  - In-Process Dual-Mode EventBus with MicroBatchIngestionWorker & DLQ Quarantine / Replay         |
+|                                     |                                                             |
+|                                     v                                                             |
+|  [INTELLIGENCE & CORRELATION ENGINE]                                                              |
+|  - Watchlist Matcher (Thread-Safe TTL Cache, Plate Normalization, Disambiguation Regex)           |
+|  - Cross-Camera Graph Correlation (Adjacency Matrix, Spatiotemporal Route Reconstruction)         |
+|  - Live Pursuit Dead-Reckoning (Heading Cone, Speed Projection, Next Camera Reconfirmation)       |
+|  - Impossible Speed & Cloned Plate Anomaly Detector (>180 km/h configurable)                     |
+|                                     |                                                             |
+|                                     v                                                             |
+|  [GOVERNMENT ADAPTER LAYER]                                                                       |
+|  - VAHAN 4.0 (Stolen vehicle status, RC details, chassis lookup)                                  |
+|  - SARTHI (Driver license validity, disqualification status)                                      |
+|  - eGujCop / CCTNS (Criminal history, FIR records, lookout notices)                               |
+|  - AFIS / NAFIS (Biometric fingerprint & facial hotlist matching)                                 |
+|  - Multi-Mode Gates: MOCK / SANDBOX / AUTHORIZED_PRODUCTION (mTLS, GSWAN VPN)                     |
+|                                     |                                                             |
+|                                     v                                                             |
+|  [EVIDENCE VAULT & LEGAL CHAIN OF CUSTODY]                                                        |
+|  - WORM Storage Driver (Local WORM / MinIO Object Lock Compliance Retention)                      |
+|  - SHA-256 Byte-Level Integrity Seals & HMAC-SHA256 Signatures                                    |
+|  - Append-Only Custody Log (VIEW, EXPORT, COURT_SUBMIT)                                           |
+|  - Section 65B Indian Evidence Act / Section 63 BSA 2023 Statutory Export Bundle                  |
+|                                                                                                   |
++---------------------------------------------------------------------------------------------------+
+```
+
+---
+
+## 2. Camera Lifecycle & Connector State Machine
+
+### 2.1 State Transitions
+The camera lifecycle transitions through 7 distinct deterministic states:
+1. `REGISTERED`: Camera metadata (logical ID, department, district, location, GPS, protocol) created in SQL catalog.
+2. `VALIDATING`: Protocol and syntax validation (URI format, IP range check, district boundaries).
+3. `CONNECTING`: Network transport probing — DNS resolution, TCP handshake to host/port.
+4. `AUTHENTICATING`: RTSP `OPTIONS` / `DESCRIBE` handshake with digest/basic authentication credentials.
+5. `HEALTH_CHECKED`: Validates transport responsiveness, latency measurement, and stream reachability.
+6. `STREAMING`: Frame ingestion active via OpenCV / GStreamer / MJPEG pipeline; records FPS and frame timestamp.
+7. `AI_ENABLED`: Camera actively bound to AI vision worker queues for vehicle detection and ANPR.
+
+### 2.2 Telemetry Provenance Standards
+Telemetry produced by camera connectors follows strict provenance definitions:
+- `MEASURED`: Physical TCP socket round-trip time (`latency_ms`), active frame count, FPS.
+- `DERIVED`: Stream uptime derived from `first_frame_timestamp` and `last_frame_timestamp`.
+- `UNAVAILABLE_AT_APPLICATION_LAYER`: Transport packet loss (requires RTCP or SNMP router counters; never hardcoded).
+
+---
+
+## 3. Computer Vision & ANPR Processing Pipeline
+
+### 3.1 Pipeline Stages
+```
+[Video Frame] 
+      │
+      ▼
+[1. Object Detector] ─────────► Bounding Box [x1, y1, x2, y2], Class, Confidence
+      │
+      ▼
+[2. ByteTrack Tracker] ───────► Track ID assignment (Association via IoU & Kalman Filter)
+      │
+      ▼
+[3. Plate Detector] ──────────► Sub-crop: High-Security Registration Plate (HSRP)
+      │
+      ▼
+[4. Plate Preprocessing] ─────► Grayscale -> CLAHE (Contrast Limiting) -> Bilateral Filter -> Deskew
+      │
+      ▼
+[5. OCR Engine] ──────────────► Raw alphanumeric string + character-level confidence
+      │
+      ▼
+[6. Normalizer & Disambiguator]► Regex filter (e.g. ^GJ[0-9]{2}[A-Z]{1,3}[0-9]{4}$), '8'<->'B', '0'<->'O'
+      │
+      ▼
+[7. Multi-Frame Fusion] ──────► Temporal voting window (Consensus across >= 3 frames)
+      │
+      ▼
+[Normalized Vehicle Sighting]
+```
+
+### 3.2 Provenance & Hardware Introspection
+- Device Backend: `CUDA` (if GPU available), `TensorRT` (edge gateways), or `CPU` fallback.
+- In unmeasured states (0 frames processed), telemetry returns `latency_p50_ms: null` with `latency_provenance: "UNAVAILABLE"`.
+
+---
+
+## 4. Spatiotemporal & Cross-Camera Intelligence
+
+### 4.1 Trajectory Reconstruction
+Given a target license plate, `VehicleTracker.reconstruct_journey(db, plate)`:
+1. Queries chronologically ordered `VehicleSighting` records.
+2. Calculates Haversine distance between consecutive camera coordinates:
+   Distance formula with Earth radius R = 6371.0 km.
+3. Computes inter-camera velocity:
+   v = distance / time_delta (km/h)
+4. Detects Physical Anomalies:
+   - If v > IMPOSSIBLE_SPEED_THRESHOLD_KMH (default 180.0 km/h), marks segment as IMPOSSIBLE_SPEED and flags potential cloned registration plates.
+   - If v > SUSPICIOUS_SPEED_THRESHOLD_KMH (default 130.0 km/h), marks segment as SUSPICIOUS_SPEED.
+
+### 4.2 Live Pursuit Dead-Reckoning
+When live pursuit is triggered:
+- Takes the vehicle's last two verified camera sightings.
+- Computes bearing / compass heading and velocity.
+- Dead-reckons real-time position along the trajectory:
+  delta_d = v * delta_t_elapsed
+- Predicts next downstream camera intercepting the heading cone within a configurable sector angle (+/- 35 deg).
+
+---
+
+## 5. Event Streaming & Micro-Batching Architecture
+
+### 5.1 Kafka Topics & Canonical Data Models
+1. `givin.sightings.raw`: Unprocessed sightings containing camera ID, timestamp, raw image reference, detector boxes.
+2. `givin.sightings.normalized`: Cleaned, validated plates with temporal consensus confidence scores.
+3. `givin.alerts.triggered`: Watchlist matches with assigned severity, officer dispatch status, and audit metadata.
+4. `givin.telemetry.camera`: Camera heartbeat, network latency, decode failures, and FPS.
+5. `givin.dlq`: Malformed, unparseable, or failed ingestion payloads quarantined for manual inspection.
+
+### 5.2 Micro-Batching & DLQ Replay
+- `MicroBatchIngestionWorker`: Accumulates sightings into micro-batches of up to 500 items or 50ms flush timeout, performing bulk SQL inserts.
+- `DeadLetterQueueManager`: Thread-safe (`threading.RLock`) poison pill isolation. Prevents poison pills from blocking the primary ingestion queue.
+- Replay API (`POST /api/system/dlq/replay`): Safely reprocesses quarantined events upon schema fix.
+
+---
+
+## 6. Government Adapters & Integration Architecture
+
+### 6.1 State Machine & Operational Modes
+Each adapter (`VAHAN`, `SARTHI`, `eGujCop`, `AFIS/NAFIS`) implements `BaseGovAdapter`:
+- `MOCK`: In-memory deterministic fixture dataset for unit tests and local sandboxing.
+- `SANDBOX`: Connects to government pre-production staging gateways.
+- `AUTHORIZED_PRODUCTION`: Requires active GSWAN VPN route, valid x509 client certificate, mTLS handshake, and authorized API key.
+
+### 6.2 Truthful Connection States
+Adapters independently report:
+- `NOT_CONFIGURED`: Missing endpoint or credential.
+- `CONFIGURED`: Credentials present, awaiting live handshake.
+- `CONNECTED`: TCP socket established to gateway.
+- `AUTHENTICATED`: mTLS / token validation successful.
+- `AUTHORIZED`: Department permissions verified.
+- `EXTERNAL_DEPENDENCY`: Gateway offline or unreachable via GSWAN.
+
+---
+
+## 7. Evidence Vault, WORM & Section 65B Compliance
+
+### 7.1 WORM (Write-Once-Read-Many) Storage
+- Storage backend: Local WORM Driver (`backend/app/services/storage/local_storage.py`) or MinIO S3 Object Lock Compliance Mode (`backend/app/services/storage/minio_storage.py`).
+- Immutability Enforcement:
+  - Overwrite attempts (`PUT` existing key): Rejection with `HTTP 409 Conflict`.
+  - Delete attempts (`DELETE` key): Rejection with `HTTP 403 Forbidden`.
+
+### 7.2 Cryptographic Integrity Records
+- Byte-level SHA-256 hash computed over exact raw evidence bytes (JPEG crop, full frame, dossier).
+- HMAC-SHA256 digital seal incorporates camera ID, timestamp, plate, snapshot hash, and officer ID.
+- Append-only audit custody ledger tracks every access, export, or status change.
+
+### 7.3 Section 65B IEA / Section 63 BSA Legal Standard
+All exported evidence bundles include:
+- `manifest.json`: Cryptographic index of all files and checksums.
+- `Section_65B_Certificate.json`: Device operational state declaration, certifying officer, and statutory legal disclaimer.
+- `investigation_dossier.json`: Complete spatiotemporal trajectory, sightings timeline, and cross-camera travel analysis.
+
+---
+
+## 8. Enterprise Security & OIDC / ABAC Specification
+
+### 8.1 Authentication & Token Verification
+- Production Mode (`ENVIRONMENT=production`):
+  - Strictly requires `Authorization: Bearer <JWT>`.
+  - Cryptographic RS256/ES256 signature verification against Keycloak / Gujarat SSO JWKS endpoint.
+  - Strict validation of `iss`, `aud`, `exp`, `nbf`, and `sub`.
+  - Zero development bypass or default super-admin identities.
+- Non-Production Mode (`ENVIRONMENT!=production`):
+  - Anonymous requests without header rejected with `401 Unauthorized`.
+  - Explicit header `X-Dev-Bypass-Token` creates a sandboxed standard officer identity (`OFFICER`, `PRIMARY_INVESTIGATOR`), never `SUPER_ADMIN`.
+
+### 8.2 Attribute-Based Access Control (ABAC)
+Policy evaluated across 4 orthogonal dimensions:
+1. Clearance Level: `TOP_SECRET` > `SECRET` > `CONFIDENTIAL` > `UNCLASSIFIED`.
+2. Department Isolation: `HOME_POLICE` has statewide supervision; other departments restricted to their own cameras/sightings unless an active federation request is approved.
+3. District Fencing: Officers restricted to their assigned jurisdiction (e.g. `Ahmedabad`, `Surat`) unless holding `Statewide` clearance.
+4. Role Permissions: 5-tier role hierarchy (`SUPER_ADMIN`, `DISTRICT_SP`, `POLICE_INSPECTOR`, `OPERATOR`, `AUDITOR`).

@@ -21,8 +21,8 @@ async function updateScaleSimulation() {
 
       document.getElementById("calc-central-bw").textContent = `${sim.central_model4_bandwidth_gbps.toLocaleString()} Gbps`;
       document.getElementById("calc-hybrid-bw").textContent = `${sim.hybrid_model_bandwidth_gbps.toLocaleString()} Gbps`;
-      document.getElementById("calc-savings-pct").textContent = `${sim.bandwidth_savings_percentage}% Saved`;
-      document.getElementById("calc-savings-cost").textContent = `₹${sim.estimated_annual_cost_savings_inr_crores} Cr`;
+      document.getElementById("calc-savings-pct").textContent = `${sim.bandwidth_savings_percentage}% (Modeled)`;
+      document.getElementById("calc-savings-cost").textContent = `₹${sim.estimated_annual_cost_savings_inr_crores} Cr (Est.)`;
       document.getElementById("calc-storage-pb").textContent = `${sim.central_storage_petabytes} PB (Central) vs ${sim.hybrid_edge_storage_petabytes} PB (Edge Incident)`;
     }
   } catch (err) {

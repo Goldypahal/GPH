@@ -234,7 +234,7 @@ async function openGovIntelModal(plate) {
 }
 
 async function createCaseAndDownloadEvidence(alertId) {
-  const confirmCreate = confirm("Initialize official Gujarat Police investigation case from this alert and download Court-Admissible Section 65B Evidence ZIP Bundle?");
+  const confirmCreate = confirm("Initialize official Gujarat Police investigation case from this alert and download Section 65B Electronic Evidence ZIP Bundle (Prepared for Authorized Legal Process)?");
   if (!confirmCreate) return;
 
   try {
@@ -255,7 +255,7 @@ async function createCaseAndDownloadEvidence(alertId) {
     }
 
     const caseData = await res.json();
-    alert(`Case ${caseData.case_number} created successfully! Downloading Section 65B Evidence ZIP Bundle...`);
+    alert(`Case ${caseData.case_number} created successfully! Downloading Section 65B Evidence ZIP Bundle (Prepared for Authorized Legal Process)...`);
 
     // 2. Trigger download of ZIP bundle
     window.location.href = `/api/cases/${caseData.id}/evidence-bundle`;

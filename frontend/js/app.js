@@ -55,6 +55,11 @@ async function loadInitialData() {
       const stats = await statsRes.json();
       document.getElementById("stat-total-cams").textContent = stats.total_onboarded;
       document.getElementById("stat-online-cams").textContent = stats.online_count;
+      const subEl = document.getElementById("stat-online-sub");
+      if (subEl) {
+        const pct = stats.total_onboarded > 0 ? ((stats.online_count / stats.total_onboarded) * 100).toFixed(1) : "0.0";
+        subEl.textContent = `${pct}% Live Measured Availability`;
+      }
     }
 
     // 2. Initialize GIS Map & Load Cameras

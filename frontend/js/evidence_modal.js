@@ -65,6 +65,9 @@ async function openSection65BCertificate(sightingOrCamId) {
             <div style="margin-top:4px; color:#475569; font-size:11px;">
               Verification Status: <span style="color:#16a34a; font-weight:bold;">${v.verification_status}</span>
             </div>
+            <div style="margin-top:8px; font-size:10px; color:#64748b; line-height:1.4; border-top:1px dashed #cbd5e1; padding-top:6px;">
+              <strong>Legal Notice:</strong> Cryptographic integrity record prepared for authorized legal process. Actual statutory admissibility under Section 65B Indian Evidence Act 1872 / Section 63 Bharatiya Sakshya Adhiniyam 2023 requires execution of formal certificate affidavit by authorized custodian having lawful control of apparatus.
+            </div>
           </div>
 
           <div class="cert-signature-block">

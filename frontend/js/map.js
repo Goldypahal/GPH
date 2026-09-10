@@ -67,10 +67,13 @@ function renderCameraMarkers(cameras) {
   cameraMarkers = [];
 
   cameras.forEach(cam => {
-    const isAlertCam = (cam.logical_camera_id === "CAM-GJ-VLS-01" || cam.logical_camera_id === "CAM-GJ-AHM-01");
+    const isAlertCam = (typeof activeAlertsList !== "undefined" && activeAlertsList.length > 0)
+      ? activeAlertsList.some(a => a.camera_code === cam.logical_camera_id || a.camera_id === cam.id || a.camera_name === cam.name)
+      : false;
     const icon = createCameraIcon(cam.status, isAlertCam);
     const marker = L.marker([cam.lat, cam.lng], { icon: icon });
 
+    const latencyDisplay = cam.latency_ms != null ? `${cam.latency_ms}ms` : 'Awaiting Ping';
     const popupContent = `
       <div style="font-family:sans-serif; color:#0f172a; min-width:210px;">
         <div style="font-weight:bold; font-size:13px; color:#0369a1; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-bottom:6px;">
@@ -80,7 +83,7 @@ function renderCameraMarkers(cameras) {
         <div style="font-size:11px; margin-bottom:3px;"><strong>District:</strong> ${cam.district}</div>
         <div style="font-size:11px; margin-bottom:3px;"><strong>Location:</strong> ${cam.location_name}</div>
         <div style="font-size:11px; margin-bottom:3px;"><strong>Hardware:</strong> ${cam.vendor} ${cam.resolution} (${cam.protocol})</div>
-        <div style="font-size:11px; margin-bottom:8px;"><strong>Status:</strong> <span style="color:${cam.status === 'ACTIVE' ? '#16a34a' : '#ea580c'}; font-weight:bold;">${cam.status}</span> | Latency: ${cam.latency_ms || 40}ms</div>
+        <div style="font-size:11px; margin-bottom:8px;"><strong>Status:</strong> <span style="color:${cam.status === 'ACTIVE' ? '#16a34a' : '#ea580c'}; font-weight:bold;">${cam.status}</span> | Latency: ${latencyDisplay}</div>
         <a href="javascript:void(0)" onclick="focusVideoWallCamera('${cam.logical_camera_id}')" style="display:inline-block; background:#0284c7; color:#fff; text-decoration:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold;">
           📹 View Live Feed
         </a>

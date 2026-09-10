@@ -399,9 +399,9 @@ def export_court_admissible_evidence_bundle(
     db: Session = Depends(get_db)
 ):
     """
-    Generates and streams a court-admissible Section 65B Electronic Evidence ZIP Bundle
-    containing manifest.json, Section_65B_Certificate.json, investigation_dossier.json,
-    and individual sighting checksums.
+    Generates and streams an electronic evidence bundle prepared for authorized legal process
+    under Section 65B Indian Evidence Act / Section 63 BSA 2023 containing manifest.json,
+    Section_65B_Certificate.json, investigation_dossier.json, and cryptographic integrity records.
     """
     case = db.query(Case).filter((Case.id == case_id) | (Case.case_number == case_id)).first()
     if not case:
@@ -422,7 +422,8 @@ def export_court_admissible_evidence_bundle(
             "timeline_entries": len(timeline),
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "evidence_act_reference": "Section 65B Indian Evidence Act 1872 & Section 63 BSA 2023",
-            "certifying_authority": "Gujarat Police Integrated Video Intelligence Network (GIVIN)"
+            "certifying_authority": "Gujarat Police Integrated Video Intelligence Network (GIVIN)",
+            "legal_provenance": "Cryptographic integrity record prepared for authorized legal process"
         }
         zf.writestr("manifest.json", json.dumps(manifest, indent=2))
 
@@ -438,6 +439,11 @@ def export_court_admissible_evidence_bundle(
             ),
             "integrity_signature_hash": generate_sha256_hash(case.case_number.encode()),
             "status": "STATUTORILY_VERIFIED_AUTHENTIC",
+            "legal_disclaimer": (
+                "Cryptographic integrity record prepared for authorized legal process. "
+                "Statutory admissibility under Section 65B Indian Evidence Act 1872 / Section 63 "
+                "Bharatiya Sakshya Adhiniyam 2023 requires execution of formal affidavit by authorized custodian."
+            ),
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         zf.writestr("Section_65B_Certificate.json", json.dumps(cert, indent=2))

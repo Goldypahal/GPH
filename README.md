@@ -13,7 +13,7 @@ Instead of an unaffordable "Model 4" brute-force central stream ingestion (which
 1. **Model 1 (CCTV Asset Registry & GIS)**: Maps every camera's exact latitude, longitude, department ownership, field of view, and health across Gujarat.
 2. **Model 3 (Protocol-Agnostic Connectors)**: Interfaces with multi-vendor NVRs/VMS without replacing departmental equipment or causing vendor lock-in.
 3. **Edge/Regional Distributed AI**: Vehicle detection and ANPR run at edge gateways/NVRs, transmitting lightweight JSON metadata events upstream (saving **98.3% of network bandwidth**).
-4. **Model 2 (Command & Control Center)**: Unified C4I dashboard, dynamic GIS trajectory mapping, sub-second watchlist correlation against **VAHAN, SARTHI, eGujCop (CCTNS), and AFIS/NAFIS**, and court-admissible Section 65B evidence packaging.
+4. **Model 2 (Command & Control Center)**: Unified C4I dashboard, dynamic GIS trajectory mapping, sub-second watchlist correlation against **VAHAN, SARTHI, eGujCop (CCTNS), and AFIS/NAFIS**, and Section 65B digital evidence packaging prepared for authorized legal process.
 
 ---
 
@@ -37,7 +37,7 @@ Instead of an unaffordable "Model 4" brute-force central stream ingestion (which
 | **Enterprise RBAC & Security** | ✅ Complete: 5-tier role hierarchy, fine-grained permission matrix, 26-dept federation lifecycle, SHA-256 audit hash chain | 🔲 Integrate with Gujarat State Single Sign-On (SSO) / Keycloak OIDC and HashiCorp Vault |
 | **Event Streaming Backbone** | ✅ Complete: Resilient dual-mode broker, partitioned topics, micro-batch worker, Dead Letter Queue (DLQ) & replay APIs | 🔲 Provision multi-broker Apache Kafka / Redpanda KRaft cluster with 3x replication |
 | **Government Database Integration** | ✅ Complete: Stateful VAHAN, SARTHI, eGujCop, AFIS adapters with Redis caching, HMAC-SHA256 signatures, Unified Intel Dossier | 🔲 Exchange mutual TLS certificates and secure VPN gateway credentials with NIC / CCTNS Gujarat |
-| **Court Evidence & Section 65B** | ✅ Complete: Automated case creation from alert, timeline evidence linkage, Section 65B ZIP bundle export | 🔲 Formally register C4I digital certificate authorities with Gujarat Forensic Sciences University / FSL |
+| **Court Evidence & Section 65B** | ✅ Complete: Automated case creation from alert, timeline evidence linkage, Section 65B/63 BSA digital dossier ZIP export (prepared for authorized legal process) | 🔲 Formally register C4I digital certificate authorities with Gujarat Forensic Sciences University / FSL |
 | **Statewide Sizing & Stress Testing** | ✅ Complete: 80k mathematical model, in-process synthetic stress test (>2,500 MPS, measured per-event p95 latency) | 🔲 Execute multi-node distributed load generation across 33 district edge clusters |
 
 ---
@@ -54,22 +54,28 @@ Instead of an unaffordable "Model 4" brute-force central stream ingestion (which
 
 ---
 
-## Verification & Automated Test Suite (31/31 Passing)
+## Verification & Automated Test Suite (79/79 Passing across 14 Modules)
 
-Run the full platform test suite covering all 7 phases:
+Run the full platform test suite covering all 14 test modules:
 
 ```powershell
-pytest tests/test_substrate_phase_a.py tests/test_vision_phase_b.py tests/test_cross_camera_phase_c.py tests/test_rbac_phase_d.py tests/test_event_streaming_phase_e.py tests/test_gov_and_cases_phase_f.py tests/test_scale_and_system_phase_g.py -v
+pytest -v
 ```
 
-All 31 test suites pass with 100% success in ~6 seconds:
-- **Phase A**: Database substrate health, local storage, Redis state, camera connectors, deployment readiness.
-- **Phase B**: Dedicated plate detector, plate preprocessor, ByteTrack, temporal OCR fusion, end-to-end vision pipeline, AI metrics API.
-- **Phase C**: Camera network graph, cloned plate detection, pursuit containment perimeters, cross-camera endpoints.
-- **Phase D**: JWT auth & roles, fine-grained permission denial, department camera federation lifecycle, blockchain audit chain tamper detection.
-- **Phase E**: Stream broker topics & partitions, micro-batch ingestion throughput, DLQ quarantine & replay, streaming metrics API.
-- **Phase F**: Gov adapters caching & HMAC signatures, unified intel bundle risk scoring, case-from-alert creation, Section 65B ZIP export.
-- **Phase G**: Scale mathematical sizing model, synthetic ingestion throughput, benchmark API endpoints with target annotations, end-to-end scale calculator.
+All 79 tests across 14 test modules pass with 100% success:
+- **Phase A (`test_substrate_phase_a.py`)**: Database substrate health, local WORM storage, Redis temporal state, camera connectors, deployment readiness.
+- **Phase B (`test_vision_phase_b.py`)**: Dedicated plate detector, CLAHE plate preprocessor, ByteTrack, temporal OCR fusion, end-to-end vision pipeline, AI metrics API.
+- **Phase C (`test_cross_camera_phase_c.py`)**: Camera network graph, cloned plate anomaly detection, pursuit containment perimeters, cross-camera endpoints.
+- **Phase D (`test_rbac_phase_d.py`)**: JWT auth & roles, fine-grained permission denial, department camera federation lifecycle, blockchain audit chain tamper detection.
+- **Phase E (`test_event_streaming_phase_e.py`)**: Stream broker topics & partitions, micro-batch ingestion throughput, DLQ quarantine & replay, streaming metrics API.
+- **Phase F (`test_gov_and_cases_phase_f.py`)**: Gov adapters caching & HMAC signatures, unified intel bundle risk scoring, case-from-alert creation, Section 65B ZIP export.
+- **Phase G (`test_scale_and_system_phase_g.py`)**: Scale mathematical sizing model, synthetic ingestion throughput, benchmark API endpoints with target annotations, end-to-end scale calculator.
+- **Security & OIDC/ABAC (`test_security_oidc_abac.py`)**: RS256/ES256 signature verification, JWKS key discovery, production token enforcement, clearance hierarchy, department boundaries, district fences.
+- **50-Camera Statewide Acceptance (`test_50_camera_acceptance.py`)**: Fleet onboarding lifecycle, multi-camera streaming, ANPR recognition, watchlist alerts, cross-camera route reconstruction, WORM vault tamper-proofing.
+- **Spatial & WORM Operations (`test_spatial_evidence_camera_ops.py`)**: WORM retention enforcement (409 on overwrite, 403 on delete), protocol-level camera probes, radius and corridor searches.
+- **Chaos & Failure Recovery (`test_chaos_failure_recovery.py`)**: Re-entrant DLQ deadlock prevention, poison pill handling, reconnect loops, corrupted frame tolerance.
+- **Production Substrate (`test_production_substrate.py`)**: Production environment strictness, MinIO and PostgreSQL readiness gates, health endpoints.
+- **Platform End-to-End (`test_givin_platform.py`)**: Master integration workflows from camera registration to dossier generation.
 
 ---
 
