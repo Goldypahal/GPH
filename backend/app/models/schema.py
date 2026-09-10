@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+import urllib.parse
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -37,6 +38,19 @@ class CameraBase(BaseModel):
     storage_type: Optional[str] = "Local NVR"
     retention_days: Optional[int] = 15
     status: Optional[str] = "ACTIVE"
+
+    @field_validator("stream_url")
+    @classmethod
+    def validate_stream_url(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
+        parsed = urllib.parse.urlparse(v)
+        if parsed.scheme and parsed.scheme.lower() not in ("rtsp", "rtsps", "http", "https"):
+            raise ValueError(f"Disallowed streaming protocol '{parsed.scheme}'. Permitted: rtsp, rtsps, http, https")
+        host = (parsed.hostname or "").lower()
+        if host in ("169.254.169.254", "metadata.google.internal", "instance-data", "metadata"):
+            raise ValueError(f"SSRF protection: destination host '{host}' is forbidden")
+        return v
 
 class CameraOut(CameraBase):
     id: str
