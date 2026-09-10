@@ -22,7 +22,9 @@ async function openSection65BCertificate(sightingOrCamId) {
     content.innerHTML = `
       <div class="cert-document">
         <div class="cert-header">
-          <div class="cert-emblem">⚖️</div>
+          <div class="cert-emblem">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="M7 21h10"></path><path d="M12 3v18"></path><path d="M3 7h18"></path></svg>
+          </div>
           <div class="cert-h1">${cert.certificate_title}</div>
           <div class="cert-h2">[Issued under ${cert.legal_act_reference}]</div>
           <div style="font-size:11px; margin-top:4px; font-family:var(--font-mono); color:#475569;">

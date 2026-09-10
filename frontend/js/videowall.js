@@ -60,7 +60,7 @@ function renderVideoWall() {
       <img src="/api/cameras/stream/${cam.logical_camera_id}" class="feed-media" alt="${cam.name}" loading="lazy" onerror="this.src='/static/assets/feed_placeholder.jpg';">
 
       <div class="feed-overlay-tag">
-        <span>📍 ${cam.location_name.slice(0, 24)}</span>
+        <span><svg class="ui-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:3px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${cam.location_name.slice(0, 24)}</span>
         <span>| ${cam.vendor}</span>
       </div>
     </div>

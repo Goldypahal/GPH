@@ -6,12 +6,14 @@ with immutable Section 65B-compliant digital hash chains to prevent administrati
 
 import hashlib
 import json
+import threading
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from backend.app.models.orm import AuditLog
 
 GENESIS_HASH = "0000000000000000000000000000000000000000000000000000000000000000"
+_audit_lock = threading.Lock()
 
 def _format_timestamp_for_hash(dt: datetime) -> str:
     """Canonical ISO-8601 UTC string for consistent hashing across platforms."""
@@ -49,36 +51,38 @@ class AuditService:
     ) -> AuditLog:
         """
         Appends an immutable audit block linked to the latest chain head.
+        Thread-safe to prevent branching forks during concurrent requests.
         """
-        # Retrieve latest block in the chain
-        latest = db.query(AuditLog).order_by(AuditLog.timestamp.desc(), AuditLog.id.desc()).first()
-        prev_hash = latest.signature_hash if (latest and latest.signature_hash) else GENESIS_HASH
+        with _audit_lock:
+            # Retrieve latest block in the chain
+            latest = db.query(AuditLog).order_by(AuditLog.timestamp.desc(), AuditLog.id.desc()).first()
+            prev_hash = latest.signature_hash if (latest and latest.signature_hash) else GENESIS_HASH
 
-        now = datetime.now(timezone.utc)
-        ts_str = _format_timestamp_for_hash(now)
+            now = datetime.now(timezone.utc)
+            ts_str = _format_timestamp_for_hash(now)
 
-        sig_hash = cls.compute_signature_hash(
-            prev_hash=prev_hash,
-            user_id=user_id,
-            action=action,
-            resource=resource,
-            timestamp_str=ts_str,
-            details_json=details_json
-        )
+            sig_hash = cls.compute_signature_hash(
+                prev_hash=prev_hash,
+                user_id=user_id,
+                action=action,
+                resource=resource,
+                timestamp_str=ts_str,
+                details_json=details_json
+            )
 
-        audit_entry = AuditLog(
-            user_id=user_id,
-            action=action,
-            resource=resource,
-            details_json=details_json,
-            prev_signature_hash=prev_hash,
-            signature_hash=sig_hash,
-            timestamp=now
-        )
-        db.add(audit_entry)
-        db.commit()
-        db.refresh(audit_entry)
-        return audit_entry
+            audit_entry = AuditLog(
+                user_id=user_id,
+                action=action,
+                resource=resource,
+                details_json=details_json,
+                prev_signature_hash=prev_hash,
+                signature_hash=sig_hash,
+                timestamp=now
+            )
+            db.add(audit_entry)
+            db.commit()
+            db.refresh(audit_entry)
+            return audit_entry
 
     @classmethod
     def verify_chain(cls, db: Session) -> Dict[str, Any]:

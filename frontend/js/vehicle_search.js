@@ -12,7 +12,7 @@ async function executeVehicleSearch() {
 
   const nodesContainer = document.getElementById("journey-nodes-list");
   nodesContainer.innerHTML = `<div style="text-align:center; padding:30px; color:var(--accent-cyan); font-family:var(--font-mono);">
-    <span>⚡ Correlating video events across 50 statewide cameras...</span>
+    <span>Correlating video events across statewide camera network...</span>
   </div>`;
 
   try {
@@ -20,7 +20,7 @@ async function executeVehicleSearch() {
     if (!res.ok) {
       const err = await res.json();
       nodesContainer.innerHTML = `<div style="text-align:center; padding:30px; color:#ef4444;">
-        ⚠️ ${err.detail || "No sightings found for this vehicle."}
+        ${err.detail || "No sightings found for this vehicle."}
       </div>`;
       document.getElementById("journey-summary-panel").style.display = "none";
       return;
@@ -96,7 +96,7 @@ function renderJourneyResults(data) {
                 Confidence: ${(pt.confidence * 100).toFixed(1)}% | Estimated Speed: <strong>${pt.speed_kmh} km/h</strong>
                 ${pt.match_method ? ` | <span style="color:#38bdf8; font-weight:600;">[${pt.match_method}]</span>` : ''}
                 ${pt.distance_km ? ` | Segment: +${pt.distance_km} km (${pt.time_delta_mins} mins)` : ''}
-                ${pt.link_status === 'IMPOSSIBLE_SPEED' ? ` | <span style="color:#ef4444; font-weight:bold;">⚠️ IMPOSSIBLE SPEED ANOMALY</span>` : ''}
+                ${pt.link_status === 'IMPOSSIBLE_SPEED' ? ` | <span style="color:#ef4444; font-weight:bold;">[IMPOSSIBLE SPEED ANOMALY]</span>` : ''}
               </div>
             </div>
 
@@ -107,7 +107,7 @@ function renderJourneyResults(data) {
 
             <div style="text-align:right;">
               <button class="quick-tag-btn" style="background:rgba(14,165,233,0.15); color:var(--accent-cyan); border-color:rgba(14,165,233,0.4);" onclick="openSection65BCertificate('${pt.camera_id}')">
-                📜 Sec 65B
+                <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>Sec 65B
               </button>
             </div>
           </div>

@@ -53,11 +53,11 @@ function renderAlerts(alerts) {
 
         <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:6px; border-top:1px solid rgba(255,255,255,0.08); padding-top:6px; flex-wrap:wrap;">
           <button class="quick-tag-btn" onclick="openVehicleJourney('${a.plate_text}')">Trace Route</button>
-          <button class="quick-tag-btn" style="background:#1e293b; color:#38bdf8;" onclick="openGovIntelModal('${a.plate_text}')">🏛️ Gov Intel</button>
-          <button class="quick-tag-btn" style="background:#0f172a; color:#f59e0b;" onclick="createCaseAndDownloadEvidence('${a.id}')">📂 Case & ZIP</button>
+          <button class="quick-tag-btn" style="background:#1e293b; color:#38bdf8;" onclick="openGovIntelModal('${a.plate_text}')"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>Gov Intel</button>
+          <button class="quick-tag-btn" style="background:#0f172a; color:#f59e0b;" onclick="createCaseAndDownloadEvidence('${a.id}')"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>Case & ZIP</button>
           ${isNew ? `
             <button class="quick-tag-btn" style="background:#0ea5e9; color:#000; font-weight:bold;" onclick="acknowledgeAlert('${a.id}')">
-              ⚡ Acknowledge & Dispatch
+              <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Acknowledge & Dispatch
             </button>
           ` : `
             <button class="quick-tag-btn" style="color:#34d399;" disabled>Dispatched (${a.dispatched_unit || 'Unit Active'})</button>
@@ -143,7 +143,7 @@ function playAlarmChime() {
 async function openGovIntelModal(plate) {
   openModal("gov-intel-modal");
   const container = document.getElementById("gov-intel-content");
-  container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--accent-cyan);">⚡ Querying National & State Registries (VAHAN, SARTHI, eGujCop, AFIS) for ${plate}...</div>`;
+  container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--accent-cyan);">Querying National & State Registries (VAHAN, SARTHI, eGujCop, AFIS) for ${plate}...</div>`;
 
   try {
     const res = await fetch(`/api/system/gov/intel-bundle/${plate}`);
@@ -157,14 +157,14 @@ async function openGovIntelModal(plate) {
     const badgeColor = isCritical ? '#ef4444' : (isHigh ? '#f59e0b' : '#34d399');
 
     container.innerHTML = `
-      <div style="background:#0b1329; border:1px solid var(--border-color); border-radius:10px; padding:16px; margin-bottom:16px;">
+      <div style="background:#0b1329; border:1px solid var(--border-color); border-radius:4px; padding:16px; margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
           <div>
             <div style="font-size:1.3rem; font-weight:800; font-family:var(--font-mono); color:#fff;">${data.normalized_plate}</div>
             <div style="font-size:0.75rem; color:var(--text-muted);">Source Signature: <span style="font-family:var(--font-mono); color:var(--accent-cyan);">${data.composite_signature_hash.slice(0, 24)}...</span></div>
           </div>
           <div style="text-align:right;">
-            <div style="background:${badgeColor}; color:#000; font-weight:bold; padding:4px 12px; border-radius:20px; font-size:0.85rem; display:inline-block;">
+            <div style="background:${badgeColor}; color:#000; font-weight:bold; padding:4px 12px; border-radius:4px; font-size:0.85rem; display:inline-block;">
               RISK: ${data.composite_risk_score}/100 • ${data.threat_assessment}
             </div>
           </div>
@@ -173,11 +173,14 @@ async function openGovIntelModal(plate) {
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
         <!-- VAHAN Panel -->
-        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:8px; padding:14px;">
-          <div style="font-weight:bold; color:var(--accent-cyan); margin-bottom:8px; display:flex; justify-content:space-between;">
-            <span>🚗 VAHAN 4.0 (MoRTH)</span>
-            <span style="font-size:0.7rem; color:${data.vahan_record.stolen_vehicle_alert ? '#ef4444' : '#34d399'};">
-              ${data.vahan_record.stolen_vehicle_alert ? '🚨 STOLEN' : '✔ CLEAR'}
+        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:14px;">
+          <div style="font-weight:bold; color:var(--accent-cyan); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+              VAHAN 4.0 (MoRTH)
+            </span>
+            <span style="font-size:0.7rem; font-weight:bold; color:${data.vahan_record.stolen_vehicle_alert ? '#ef4444' : '#34d399'};">
+              ${data.vahan_record.stolen_vehicle_alert ? '[STOLEN]' : '[CLEAR]'}
             </span>
           </div>
           <div style="font-size:0.8rem; line-height:1.6; color:#cbd5e1;">
@@ -189,11 +192,14 @@ async function openGovIntelModal(plate) {
         </div>
 
         <!-- eGujCop / CCTNS Panel -->
-        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:8px; padding:14px;">
-          <div style="font-weight:bold; color:var(--accent-red); margin-bottom:8px; display:flex; justify-content:space-between;">
-            <span>🛡️ eGujCop / CCTNS Crime Records</span>
-            <span style="font-size:0.7rem; color:${data.egujcop_record.active_lookout_notice ? '#ef4444' : '#34d399'};">
-              ${data.egujcop_record.active_lookout_notice ? '🚨 ACTIVE LOOKOUT' : '✔ NO WARRANT'}
+        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:14px;">
+          <div style="font-weight:bold; color:var(--accent-red); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              eGujCop / CCTNS Crime Records
+            </span>
+            <span style="font-size:0.7rem; font-weight:bold; color:${data.egujcop_record.active_lookout_notice ? '#ef4444' : '#34d399'};">
+              ${data.egujcop_record.active_lookout_notice ? '[ACTIVE LOOKOUT]' : '[NO WARRANT]'}
             </span>
           </div>
           <div style="font-size:0.8rem; line-height:1.6; color:#cbd5e1;">
@@ -205,8 +211,11 @@ async function openGovIntelModal(plate) {
         </div>
 
         <!-- SARTHI DL Panel -->
-        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:8px; padding:14px;">
-          <div style="font-weight:bold; color:var(--accent-amber); margin-bottom:8px;">🪪 SARTHI (Driver License)</div>
+        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:14px;">
+          <div style="font-weight:bold; color:var(--accent-amber); margin-bottom:8px; display:inline-flex; align-items:center; gap:6px;">
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            SARTHI (Driver License)
+          </div>
           <div style="font-size:0.8rem; line-height:1.6; color:#cbd5e1;">
             <div><strong>License No:</strong> <span style="font-family:var(--font-mono);">${data.sarathi_record.license_number}</span></div>
             <div><strong>Holder:</strong> ${data.sarathi_record.driver_name}</div>
@@ -216,8 +225,11 @@ async function openGovIntelModal(plate) {
         </div>
 
         <!-- AFIS Biometrics Panel -->
-        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:8px; padding:14px;">
-          <div style="font-weight:bold; color:#a855f7; margin-bottom:8px;">🧬 AFIS / NAFIS Biometrics</div>
+        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:14px;">
+          <div style="font-weight:bold; color:var(--accent-cyan); margin-bottom:8px; display:inline-flex; align-items:center; gap:6px;">
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2"></path></svg>
+            AFIS / NAFIS Biometrics
+          </div>
           <div style="font-size:0.8rem; line-height:1.6; color:#cbd5e1;">
             <div><strong>Biometric Match:</strong> <span style="color:${data.afis_record.match_found ? '#ef4444' : '#34d399'}; font-weight:bold;">${data.afis_record.match_found ? 'MATCH FOUND' : 'NO RECORD'}</span></div>
             <div><strong>Suspect:</strong> ${data.afis_record.suspect_name || 'N/A'}</div>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GIVIN — Gujarat Integrated Video Intelligence Network | Command Center</title>
+  <title>GIVIN: Gujarat Integrated Video Intelligence Network | Command Center</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -14,7 +14,7 @@
     <div class="brand-section">
       <div class="state-emblem">GJ</div>
       <div>
-        <div class="brand-title">GIVIN <span style="font-size:0.75rem; color:#f59e0b; border:1px solid #f59e0b; padding:1px 6px; border-radius:4px; font-weight:normal;">POLICE C4I</span></div>
+        <div class="brand-title">GIVIN <span style="font-size:0.75rem; color:#f59e0b; border:1px solid #f59e0b; padding:1px 6px; border-radius:3px; font-weight:normal;">POLICE C4I</span></div>
         <div class="brand-subtitle">GUJARAT INTEGRATED VIDEO INTELLIGENCE NETWORK</div>
       </div>
     </div>
@@ -22,19 +22,19 @@
     <!-- Navigation Tabs -->
     <nav class="nav-tabs">
       <button class="nav-tab-btn active" data-view="gis-view" id="tab-gis">
-        <span>🗺️</span> GIS Map & Registry
+        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg> GIS Map & Registry
       </button>
       <button class="nav-tab-btn" data-view="videowall-view" id="tab-videowall">
-        <span>📹</span> Video Wall (Grid)
+        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg> Video Wall (Grid)
       </button>
       <button class="nav-tab-btn" data-view="tracer-view" id="tab-tracer">
-        <span>🎯</span> Vehicle Journey Tracer
+        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg> Vehicle Journey Tracer
       </button>
       <button class="nav-tab-btn" data-view="alerts-view" id="tab-alerts">
-        <span>🚨</span> Watchlists & Alerts <span id="alert-counter-badge" style="background:#ef4444; color:#fff; font-size:0.68rem; padding:1px 6px; border-radius:10px; font-weight:bold;">6</span>
+        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Watchlists & Alerts <span id="alert-counter-badge" style="background:#ef4444; color:#fff; font-size:0.68rem; padding:1px 5px; border-radius:3px; font-weight:bold;">6</span>
       </button>
       <button class="nav-tab-btn" data-view="scale-view" id="tab-scale">
-        <span>⚡</span> 80k Scale Architecture
+        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> 80k Scale Architecture
       </button>
     </nav>
 
@@ -51,7 +51,7 @@
   <!-- Live Hotlist Alert Ticker Bar -->
   <div class="alert-ticker-strip">
     <div class="ticker-lead">
-      <span>🚨 CRITICAL HIT:</span>
+      <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg> CRITICAL HIT:
     </div>
     <div class="ticker-msg" id="ticker-alert-text">
       [ALT-20260909-VLS1] Stolen Red Swift GJ01AB1234 intercepted at Valsad Bhilad Border Post (Southbound NH-48). Interceptor 12 dispatched.
@@ -93,7 +93,7 @@
         <div class="panel-card">
           <div class="panel-header">
             <div class="panel-title">
-              <span>📍</span> Gujarat Statewide Geospatial Surveillance Map
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Gujarat Statewide Geospatial Surveillance Map
             </div>
             <div class="panel-actions">
               <button class="quick-tag-btn" onclick="filterMapByDistrict('all')">All State</button>
@@ -110,7 +110,7 @@
         <div class="panel-card" style="display:flex; flex-direction:column;">
           <div class="panel-header">
             <div class="panel-title">
-              <span>📷</span> Camera Registry (Model 1)
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg> Camera Registry (Model 1)
             </div>
             <button class="quick-tag-btn" style="background:#0ea5e9; color:#000; font-weight:bold;" onclick="openOnboardModal()">+ Onboard</button>
           </div>
@@ -129,7 +129,7 @@
       <div class="panel-card">
         <div class="panel-header">
           <div class="panel-title">
-            <span>🖥️</span> Unified Live Video Wall & AI Analytics Overlay
+            <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> Unified Live Video Wall & AI Analytics Overlay
           </div>
           <div class="videowall-controls">
             <span style="font-size:0.8rem; color:var(--text-muted);">Matrix Grid:</span>
@@ -137,7 +137,7 @@
             <button class="grid-btn active" onclick="setVideoWallGrid(2)">2x2</button>
             <button class="grid-btn" onclick="setVideoWallGrid(3)">3x3</button>
             <button class="grid-btn" onclick="setVideoWallGrid(4)">4x4</button>
-            <button class="quick-tag-btn" style="margin-left:12px;" onclick="refreshVideoStreams()">🔄 Refresh Feeds</button>
+            <button class="quick-tag-btn" style="margin-left:12px;" onclick="refreshVideoStreams()"><svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Refresh Feeds</button>
           </div>
         </div>
         <div class="videowall-grid grid-2x2" id="videowall-container">
@@ -154,7 +154,7 @@
           <input type="text" id="vehicle-search-input" class="search-input-field" placeholder="Enter Registration No. (e.g. GJ01AB1234)" value="GJ01AB1234">
         </div>
         <button class="primary-search-btn" onclick="executeVehicleSearch()">
-          <span>🔍</span> Track Vehicle Journey
+          <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Track Vehicle Journey
         </button>
       </div>
 
@@ -192,20 +192,20 @@
                 <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase;">Avg Speed</div>
                 <div style="font-size:1.4rem; font-weight:800; color:var(--accent-amber);" id="sum-speed">70.6 km/h</div>
               </div>
-              <button class="primary-search-btn" id="live-pursuit-toggle-btn" style="background:#dc2626; padding:10px 18px;" onclick="toggleLivePursuit()">
-                <span>🚨</span> LIVE TRACK ON MAP
+              <button class="primary-search-btn" id="live-pursuit-toggle-btn" style="background:#dc2626; border-color:#b91c1c; padding:10px 18px;" onclick="toggleLivePursuit()">
+                <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg> LIVE TRACK ON MAP
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Live Pursuit HUD (GTA-style live radar panel) -->
+      <!-- Live Pursuit HUD -->
       <div id="live-pursuit-hud" class="live-pursuit-hud" style="display:none;">
         <div class="lp-hud-header">
           <span class="lp-hud-blip-dot" id="lp-status-dot"></span>
-          <span id="lp-hud-title">LIVE PURSUIT — <span id="lp-hud-plate">GJ01AB1234</span></span>
-          <span class="lp-hud-status-pill" id="lp-hud-status-pill">CONNECTING…</span>
+          <span id="lp-hud-title">LIVE PURSUIT: <span id="lp-hud-plate">GJ01AB1234</span></span>
+          <span class="lp-hud-status-pill" id="lp-hud-status-pill">CONNECTING</span>
           <button class="lp-hud-close" onclick="toggleLivePursuit()">✕</button>
         </div>
         <div class="lp-hud-body">
@@ -217,7 +217,7 @@
           <div class="lp-hud-stat"><div class="lp-hud-label">ETA to that Camera</div><div class="lp-hud-value" id="lp-hud-eta">–</div></div>
         </div>
         <div class="lp-hud-footnote" id="lp-hud-footnote">
-          Position is dead-reckoned from the last two confirmed ANPR sightings (heading + speed) — GIVIN has no in-vehicle GPS. Use "Simulate Alert" on Watchlists tab to push a fresh sighting.
+          Position is dead-reckoned from the last two confirmed ANPR sightings (heading + speed). GIVIN has no in-vehicle GPS. Use "Simulate Alert" on Watchlists tab to push a fresh sighting.
         </div>
       </div>
 
@@ -225,10 +225,10 @@
       <div class="panel-card">
         <div class="panel-header">
           <div class="panel-title">
-            <span>⏱️</span> Timestamped Location-wise Movement History (Sequence & Evidence)
+            <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Timestamped Location-wise Movement History (Sequence & Evidence)
           </div>
-          <button class="primary-search-btn" style="padding:6px 16px; font-size:0.82rem;" onclick="showJourneyOnMap()">
-            <span>🗺️</span> Animate Route on GIS Map
+          <button class="primary-search-btn" style="padding:6px 14px; font-size:0.82rem;" onclick="showJourneyOnMap()">
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg> Render Route on GIS Map
           </button>
         </div>
         <div style="padding:16px;" id="journey-nodes-list">
@@ -246,11 +246,11 @@
         <div class="panel-card">
           <div class="panel-header">
             <div class="panel-title">
-              <span>🚨</span> Real-Time Law Enforcement Alarm Dispatch
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg> Real-Time Law Enforcement Alarm Dispatch
             </div>
             <div class="panel-actions">
               <button class="quick-tag-btn" style="background:var(--accent-red); color:#fff;" onclick="triggerSimulatedAlert()">+ Simulate Alert</button>
-              <button class="quick-tag-btn" onclick="loadAlerts()">🔄 Refresh</button>
+              <button class="quick-tag-btn" onclick="loadAlerts()"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Refresh</button>
             </div>
           </div>
           <div class="alert-feed-list" id="alert-items-container">
@@ -262,7 +262,7 @@
         <div class="panel-card">
           <div class="panel-header">
             <div class="panel-title">
-              <span>📋</span> Hotlist Database (VAHAN / eGujCop)
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg> Hotlist Database (VAHAN / eGujCop)
             </div>
             <button class="quick-tag-btn" onclick="openAddWatchlistModal()">+ Add Suspect</button>
           </div>
@@ -279,7 +279,7 @@
         <div class="panel-card">
           <div class="panel-header">
             <div class="panel-title">
-              <span>⚡</span> Statewide Capacity & Sizing Calculator (~80,000 Target)
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg> Statewide Capacity & Sizing Calculator (~80,000 Target)
               <span class="quick-tag-btn" style="background:#0f172a; color:#38bdf8; font-size:0.68rem; margin-left:8px; border:1px solid #0284c7;">MODELED SIZING</span>
             </div>
           </div>
@@ -288,8 +288,8 @@
               This interactive calculator simulates the Gujarat statewide scale requirements, contrasting brute-force 
               <strong>Model 4 Central Streaming</strong> against GIVIN's <strong>Hybrid Edge-Metadata Architecture</strong>.
             </p>
-            <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:16px; background:#0b1329; padding:8px 12px; border-radius:6px; border-left:3px solid #0284c7;">
-              ℹ️ <strong>Methodology:</strong> Sizing calculations are based on derived traffic models (2 sightings/sec/cam, 1.2 KB metadata, 2% alert crop burst). Physical 80k-camera validation is performed during staged multi-node infrastructure acceptance.
+            <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:16px; background:#0b1329; padding:8px 12px; border-radius:4px; border-left:3px solid #0284c7;">
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg><strong>Methodology:</strong> Sizing calculations are based on derived traffic models (2 sightings/sec/cam, 1.2 KB metadata, 2% alert crop burst). Physical 80k-camera validation is performed during staged multi-node infrastructure acceptance.
             </div>
 
             <div class="form-group">
@@ -317,7 +317,7 @@
               </div>
             </div>
 
-            <div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:18px; margin-top:16px;">
+            <div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px; padding:18px; margin-top:16px;">
               <div style="font-size:0.85rem; font-weight:700; color:#fff; margin-bottom:14px; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between;">
                 <span>Architectural Comparison & Bandwidth Consumption</span>
                 <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">[DERIVED ESTIMATE]</span>
@@ -351,14 +351,16 @@
             </div>
 
             <!-- Real-Time In-Process Stress Test Panel -->
-            <div style="margin-top:20px; background:#080d18; border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+            <div style="margin-top:20px; background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:16px;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
                 <div>
-                  <span style="font-size:0.88rem; font-weight:bold; color:var(--accent-cyan);">⚡ IN-PROCESS SYNTHETIC INGESTION BENCHMARK</span>
+                  <span style="font-size:0.88rem; font-weight:bold; color:var(--accent-cyan); display:inline-flex; align-items:center; gap:6px;">
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> IN-PROCESS SYNTHETIC INGESTION BENCHMARK
+                  </span>
                   <span class="quick-tag-btn" style="background:#1e293b; color:#f59e0b; font-size:0.65rem; margin-left:6px;">80K MODELED SIZING → 10K APPLICATION SAMPLE</span>
                 </div>
                 <button id="btn-run-stress-test" class="quick-tag-btn" style="background:#0ea5e9; color:#000; font-weight:bold;" onclick="runLiveStressTest()">
-                  ⚡ Run Benchmark
+                  <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>Run Benchmark
                 </button>
               </div>
               <div id="stress-test-status" style="font-size:0.78rem; margin-bottom:10px; display:none;"></div>
@@ -389,25 +391,25 @@
         <div class="panel-card">
           <div class="panel-header">
             <div class="panel-title">
-              <span>🏛️</span> 3-Tier Statewide Deployment Topology
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> 3-Tier Statewide Deployment Topology
             </div>
           </div>
           <div style="padding:20px; font-size:0.82rem; line-height:1.6; color:var(--text-muted);">
-            <div style="background:#080d18; border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:14px; font-family:var(--font-mono);">
+            <div style="background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:14px; margin-bottom:14px; font-family:var(--font-mono);">
               <div style="color:var(--accent-cyan); font-weight:bold;">TIER 1: 33 DISTRICT EDGE CLUSTERS</div>
               <div>- Multi-vendor NVRs & RTSP ingestion (CP Plus, Hikvision, Dahua, Axis)</div>
               <div>- Real-time Edge AI: Vehicle Detection + ANPR character extraction</div>
               <div>- 15-30 days local ring buffer storage; zero continuous central streaming</div>
             </div>
 
-            <div style="background:#080d18; border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:14px; font-family:var(--font-mono);">
+            <div style="background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:14px; margin-bottom:14px; font-family:var(--font-mono);">
               <div style="color:var(--accent-amber); font-weight:bold;">TIER 2: 4 REGIONAL INTELLIGENCE HUBS</div>
               <div>- North, South, Central, Saurashtra-Kutch regional broker clusters</div>
               <div>- Inter-district correlation and high-speed plate deduplication</div>
               <div>- VAHAN & eGujCop hotlist caching for sub-millisecond lookups</div>
             </div>
 
-            <div style="background:#080d18; border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:14px; font-family:var(--font-mono);">
+            <div style="background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:14px; margin-bottom:14px; font-family:var(--font-mono);">
               <div style="color:var(--accent-green); font-weight:bold;">TIER 3: STATE COMMAND & CONTROL (GANDHINAGAR)</div>
               <div>- Statewide C4I Video Wall, GIS Mapping, and Cross-District Journey Tracer</div>
               <div>- Section 65B Digital Evidence Certification & Audit Vault</div>
@@ -415,7 +417,7 @@
             </div>
 
             <button class="primary-search-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="viewAuditTrail()">
-              <span>🔒</span> View Cryptographic Audit Log Vault
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>View Cryptographic Audit Log Vault
             </button>
           </div>
         </div>

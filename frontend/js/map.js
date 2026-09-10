@@ -84,8 +84,8 @@ function renderCameraMarkers(cameras) {
         <div style="font-size:11px; margin-bottom:3px;"><strong>Location:</strong> ${cam.location_name}</div>
         <div style="font-size:11px; margin-bottom:3px;"><strong>Hardware:</strong> ${cam.vendor} ${cam.resolution} (${cam.protocol})</div>
         <div style="font-size:11px; margin-bottom:8px;"><strong>Status:</strong> <span style="color:${cam.status === 'ACTIVE' ? '#16a34a' : '#ea580c'}; font-weight:bold;">${cam.status}</span> | Latency: ${latencyDisplay}</div>
-        <a href="javascript:void(0)" onclick="focusVideoWallCamera('${cam.logical_camera_id}')" style="display:inline-block; background:#0284c7; color:#fff; text-decoration:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold;">
-          📹 View Live Feed
+        <a href="javascript:void(0)" onclick="focusVideoWallCamera('${cam.logical_camera_id}')" style="display:inline-flex; align-items:center; gap:4px; background:#0284c7; color:#fff; text-decoration:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold;">
+          <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg> View Live Feed
         </a>
       </div>
     `;
@@ -215,17 +215,17 @@ window.drawTrajectoryOnMap = function(trajectoryPoints) {
   // Fit bounds to entire route
   gisMap.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
 
-  // Add animated vehicle marker at start position
+  // Add vehicle marker at start position
   const carIcon = L.divIcon({
-    html: `<div style="background:#ef4444; border:2px solid #fff; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:15px; box-shadow:0 0 18px #ef4444; animation:pulse 1.2s infinite;">🚗</div>`,
+    html: `<div style="background:#ef4444; border:2px solid #fff; border-radius:4px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 10px rgba(239,68,68,0.5);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg></div>`,
     className: "car-anim-pin",
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
+    iconSize: [28, 28],
+    iconAnchor: [14, 14]
   });
 
   animatedVehicleMarker = L.marker(latlngs[0], { icon: carIcon }).addTo(gisMap);
 
-  // Stepwise animation along checkpoints
+  // Stepwise progression along checkpoints
   let step = 0;
   const interval = setInterval(() => {
     step++;
@@ -238,10 +238,10 @@ window.drawTrajectoryOnMap = function(trajectoryPoints) {
 };
 
 // ==========================================================================
-// LIVE PURSUIT MODE — GTA5-style live tracking blip for a stolen vehicle.
+// LIVE PURSUIT MODE: Real-time tracking blip for a target vehicle.
 // Polls /api/tracking/live/{plate}, which dead-reckons a moving position
 // from the vehicle's last two confirmed ANPR sightings (heading + speed),
-// and animates a pulsing marker + heading cone + predicted-next-camera
+// and displays a marker + heading cone + predicted-next-camera
 // pin on the GIS map, alongside a live HUD readout.
 // ==========================================================================
 let livePursuitState = {
@@ -270,7 +270,10 @@ function startLivePursuit(plate) {
   livePursuitState.plate = plate;
 
   const btn = document.getElementById("live-pursuit-toggle-btn");
-  if (btn) { btn.innerHTML = "<span>⏹</span> STOP LIVE TRACK"; btn.style.background = "#7f1d1d"; }
+  if (btn) {
+    btn.innerHTML = `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="margin-right:4px;"><rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>STOP LIVE TRACK`;
+    btn.style.background = "#7f1d1d";
+  }
 
   document.getElementById("lp-hud-plate").textContent = plate;
   document.getElementById("live-pursuit-hud").style.display = "block";
@@ -289,7 +292,10 @@ function stopLivePursuit() {
   livePursuitState.pollTimer = null;
 
   const btn = document.getElementById("live-pursuit-toggle-btn");
-  if (btn) { btn.innerHTML = "<span>🚨</span> LIVE TRACK ON MAP"; btn.style.background = "#dc2626"; }
+  if (btn) {
+    btn.innerHTML = `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>LIVE TRACK ON MAP`;
+    btn.style.background = "#dc2626";
+  }
 
   document.getElementById("live-pursuit-hud").style.display = "none";
 
@@ -342,7 +348,7 @@ function renderLivePursuitPosition(pos) {
 
   if (!gisMap) return;
 
-  // --- Trail (fading line of recent confirmed checkpoints) ---
+  // --- Trail (line of recent confirmed checkpoints) ---
   if (livePursuitState.trailLine) gisMap.removeLayer(livePursuitState.trailLine);
   if (pos.trail && pos.trail.length > 1) {
     livePursuitState.trailLine = L.polyline(pos.trail, {
@@ -350,26 +356,30 @@ function renderLivePursuitPosition(pos) {
     }).addTo(gisMap);
   }
 
-  // --- Live pulsing blip with heading cone (radar-style) ---
+  // --- Live blip with heading cone ---
   const html = `
     <div class="lp-vehicle-marker-wrap">
-      <div class="lp-radar-ring"></div>
       <div class="lp-heading-cone" style="transform:rotate(${pos.heading_deg}deg);"></div>
-      <div class="lp-vehicle-dot ${isStale ? 'lp-stale' : ''}">🚓</div>
+      <div class="lp-vehicle-dot ${isStale ? 'lp-stale' : ''}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+      </div>
     </div>
   `;
   const icon = L.divIcon({ html, className: "lp-marker-icon", iconSize: [46, 46], iconAnchor: [23, 23] });
 
   if (!livePursuitState.marker) {
     livePursuitState.marker = L.marker([pos.lat, pos.lng], { icon, zIndexOffset: 1000 }).addTo(gisMap);
-    gisMap.setView([pos.lat, pos.lng], 10, { animate: true });
+    gisMap.setView([pos.lat, pos.lng], 10, { animate: false });
   } else {
     livePursuitState.marker.setIcon(icon);
-    livePursuitState.marker.setLatLng([pos.lat, pos.lng]); // Leaflet marker CSS transition eases this visually
+    livePursuitState.marker.setLatLng([pos.lat, pos.lng]);
   }
   livePursuitState.marker.bindPopup(`
     <div style="font-family:sans-serif; color:#0f172a; min-width:200px;">
-      <div style="font-weight:bold; color:#dc2626;">🚨 ${pos.plate_number} — ${isStale ? 'SIGNAL STALE' : 'LIVE PREDICTED'}</div>
+      <div style="font-weight:bold; color:#dc2626; display:flex; align-items:center; gap:6px;">
+        <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        ${pos.plate_number}: ${isStale ? 'SIGNAL STALE' : 'LIVE PREDICTED'}
+      </div>
       <div style="font-size:11px; margin-top:4px;">${pos.watchlist_reason || 'Under active surveillance'}</div>
       <div style="font-size:11px;"><strong>Speed:</strong> ${pos.speed_kmh} km/h &nbsp; <strong>Heading:</strong> ${compassFromDeg(pos.heading_deg)}</div>
     </div>
@@ -379,8 +389,8 @@ function renderLivePursuitPosition(pos) {
   if (livePursuitState.nextCamMarker) gisMap.removeLayer(livePursuitState.nextCamMarker);
   if (pos.predicted_next_camera && pos.predicted_next_lat) {
     const camIcon = L.divIcon({
-      html: `<div class="lp-next-camera-icon" style="font-size:22px;">🎯</div>`,
-      className: "lp-next-cam-pin", iconSize: [26, 26], iconAnchor: [13, 13]
+      html: `<div class="lp-next-camera-icon" style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; background:#0284c7; border:2px solid #fff; border-radius:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg></div>`,
+      className: "lp-next-cam-pin", iconSize: [24, 24], iconAnchor: [12, 12]
     });
     livePursuitState.nextCamMarker = L.marker([pos.predicted_next_lat, pos.predicted_next_lng], { icon: camIcon })
       .bindTooltip(`Likely next reconfirmation: ${pos.predicted_next_camera}`, { permanent: false })
