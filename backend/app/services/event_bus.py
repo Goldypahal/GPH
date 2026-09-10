@@ -342,5 +342,7 @@ class EventBus:
                 "status": "HEALTHY_STREAMING"
             }
 
+    get_metrics = get_pipeline_metrics
+
 
 event_bus = EventBus()

@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from backend.app.models.orm import VehicleSighting, Camera, Watchlist
 from backend.app.services.anpr_engine import ANPREngine
+from backend.app.core.config import settings
 from backend.app.models.schema import (
     VehicleJourneySummary, VehicleTrajectoryPoint, WatchlistOut, LivePursuitPosition
 )
@@ -113,9 +114,9 @@ class VehicleTracker:
                 # Impossible-speed / teleportation filter
                 if time_diff > 0:
                     implied_speed = round(dist_km / (time_diff / 60.0), 1)
-                    if implied_speed > 180.0:
+                    if implied_speed > settings.IMPOSSIBLE_SPEED_THRESHOLD_KMH:
                         link_status = "IMPOSSIBLE_SPEED"
-                    elif implied_speed > 130.0:
+                    elif implied_speed > settings.SUSPICIOUS_SPEED_THRESHOLD_KMH:
                         link_status = "LOW_CONFIDENCE_LINK"
 
             # Match method classification

@@ -23,6 +23,7 @@ import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from enum import Enum
+from collections import deque
 from typing import Any, Dict, Optional
 
 from backend.app.core.config import settings
@@ -59,7 +60,7 @@ class BaseGovAdapter(ABC):
         self.mode = mode or IntegrationMode(env_mode if env_mode in IntegrationMode.__members__ else "MOCK")
         
         self.is_connected = True
-        self.simulated_latency_ms = 14
+        self._recent_latencies: deque = deque(maxlen=100)
         self._total_queries = 0
         self._cache_hits = 0
         self._recent_query_timestamps: list[float] = []
@@ -136,13 +137,19 @@ class BaseGovAdapter(ABC):
                 "identifier": clean_id
             }
 
-        latency_ms = round((time.time() - t0) * 1000.0 + self.simulated_latency_ms, 1)
+        latency_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+        self._recent_latencies.append(latency_ms)
 
         raw_result["service"] = self.service_name
         raw_result["integration_mode"] = self.mode.value
         raw_result["retrieved_at"] = datetime.now(timezone.utc).isoformat()
         raw_result["requesting_officer"] = requesting_officer or "INVESTIGATOR_SYSTEM"
         raw_result["latency_ms"] = latency_ms
+        raw_result["latency_provenance"] = (
+            "MEASURED_PRODUCTION_NETWORK_PROBE"
+            if self.mode == IntegrationMode.AUTHORIZED_PRODUCTION
+            else "MEASURED_SANDBOX_ADAPTER"
+        )
         raw_result["cache_hit"] = False
 
         # 3. Compute Cryptographic Source Signature (Integrity Verification)
@@ -170,6 +177,14 @@ class BaseGovAdapter(ABC):
     def get_health_status(self) -> Dict[str, Any]:
         """Telemetry diagnostics for government integration contracts."""
         hit_ratio = round((self._cache_hits / max(1, self._total_queries)) * 100.0, 1)
+        if self._recent_latencies:
+            sorted_latencies = sorted(self._recent_latencies)
+            p50_latency = round(sorted_latencies[len(sorted_latencies) // 2], 2)
+            latency_provenance = "MEASURED"
+        else:
+            p50_latency = None
+            latency_provenance = "UNAVAILABLE"
+
         return {
             "service": self.service_name,
             "adapter": self.service_name,
@@ -178,7 +193,12 @@ class BaseGovAdapter(ABC):
             "endpoint_url": self.endpoint_url,
             "total_queries": self._total_queries,
             "cache_hit_pct": hit_ratio,
-            "latency_p50_ms": self.simulated_latency_ms,
-            "security_spec": "mTLS + GSWAN (State Wide Area Network)" if self.mode == IntegrationMode.AUTHORIZED_PRODUCTION else "Standard HTTPS Gateway"
+            "latency_p50_ms": p50_latency,
+            "latency_provenance": latency_provenance,
+            "security_spec": (
+                "mTLS + GSWAN (State Wide Area Network)"
+                if self.mode == IntegrationMode.AUTHORIZED_PRODUCTION
+                else "Standard HTTPS Gateway"
+            )
         }
 

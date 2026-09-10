@@ -5,13 +5,40 @@ from backend.app.models.orm import Watchlist, Alert, VehicleSighting, Camera
 from backend.app.services.anpr_engine import ANPREngine
 from backend.app.core.config import settings
 
+import time
+import threading
+
 class WatchlistMatcher:
     """Exact/fuzzy watchlist matching with confidence-aware alert deduplication."""
+
+    _cached_active: list = []
+    _last_cache_time: float = 0.0
+    _CACHE_TTL_SEC: float = 2.0
+    _cache_lock = threading.Lock()
+
+    @classmethod
+    def invalidate_cache(cls):
+        with cls._cache_lock:
+            cls._cached_active = []
+            cls._last_cache_time = 0.0
+
+    @classmethod
+    def get_active_watchlist(cls, db: Session) -> list:
+        now = time.time()
+        with cls._cache_lock:
+            if cls._cached_active and (now - cls._last_cache_time) < cls._CACHE_TTL_SEC:
+                return cls._cached_active
+        # Refresh outside lock to avoid holding lock during I/O
+        fresh = db.query(Watchlist).filter(Watchlist.status == "ACTIVE").all()
+        with cls._cache_lock:
+            cls._cached_active = fresh
+            cls._last_cache_time = time.time()
+            return cls._cached_active
 
     @classmethod
     def check_plate(cls, db: Session, sighting: VehicleSighting) -> Optional[Tuple[Watchlist, str, float]]:
         target = ANPREngine.normalize_plate(sighting.normalized_plate)
-        active = db.query(Watchlist).filter(Watchlist.status == "ACTIVE").all()
+        active = cls.get_active_watchlist(db)
         for item in active:
             if ANPREngine.normalize_plate(item.vehicle_number) == target:
                 return item, "EXACT", min(1.0, max(0.0, sighting.confidence))

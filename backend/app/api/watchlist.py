@@ -63,6 +63,9 @@ def add_to_watchlist(item: WatchlistCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_entry)
 
+    from backend.app.services.watchlist_matcher import WatchlistMatcher
+    WatchlistMatcher.invalidate_cache()
+
     return new_entry
 
 @router.delete("/{watchlist_id}")
@@ -74,4 +77,6 @@ def delete_from_watchlist(watchlist_id: str, db: Session = Depends(get_db)):
     
     entry.status = "INACTIVE"
     db.commit()
+    from backend.app.services.watchlist_matcher import WatchlistMatcher
+    WatchlistMatcher.invalidate_cache()
     return {"message": "Watchlist entry deactivated successfully", "id": watchlist_id}

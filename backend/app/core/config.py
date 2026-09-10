@@ -41,6 +41,8 @@ class Settings(BaseModel):
     OIDC_JWKS_URL: Optional[str] = os.getenv("OIDC_JWKS_URL", None)
     OIDC_ALLOWED_ALGORITHMS: list[str] = ["RS256", "ES256"]
     DEV_BYPASS_TOKEN: str = os.getenv("DEV_BYPASS_TOKEN", "givin-local-dev-bypass-2026")
+    IMPOSSIBLE_SPEED_THRESHOLD_KMH: float = float(os.getenv("IMPOSSIBLE_SPEED_THRESHOLD_KMH", "180.0"))
+    SUSPICIOUS_SPEED_THRESHOLD_KMH: float = float(os.getenv("SUSPICIOUS_SPEED_THRESHOLD_KMH", "130.0"))
 
     @field_validator("SECRET_KEY")
     @classmethod

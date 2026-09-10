@@ -63,8 +63,8 @@ class VisionPipeline:
             "total_temporal_fusions": 0,
             "anpr_attempts": 0,
             "anpr_success": 0,
-            "avg_latency_ms": 18.5,
-            "recent_latencies": [16.2, 17.8, 18.4, 19.1, 21.0, 24.5]
+            "avg_latency_ms": None,
+            "recent_latencies": []
         }
         self._active_cameras: dict[str, dict] = {}
 
@@ -87,11 +87,19 @@ class VisionPipeline:
 
     def get_telemetry(self) -> dict[str, Any]:
         """Returns live calculated inference percentiles from recorded execution timings."""
-        lats = self._metrics["recent_latencies"] or [18.5]
-        sorted_lats = sorted(lats)
-        p50 = sorted_lats[int(len(sorted_lats) * 0.50)]
-        p95 = sorted_lats[min(len(sorted_lats) - 1, int(len(sorted_lats) * 0.95))]
-        p99 = sorted_lats[min(len(sorted_lats) - 1, int(len(sorted_lats) * 0.99))]
+        lats = self._metrics["recent_latencies"]
+        if lats:
+            sorted_lats = sorted(lats)
+            p50 = round(float(sorted_lats[int(len(sorted_lats) * 0.50)]), 2)
+            p95 = round(float(sorted_lats[min(len(sorted_lats) - 1, int(len(sorted_lats) * 0.95))]), 2)
+            p99 = round(float(sorted_lats[min(len(sorted_lats) - 1, int(len(sorted_lats) * 0.99))]), 2)
+            provenance = "MEASURED"
+        else:
+            p50 = None
+            p95 = None
+            p99 = None
+            provenance = "UNAVAILABLE"
+
         return {
             "frames_processed": self._metrics["total_frames_processed"],
             "vehicles_detected": self._metrics["total_vehicles_detected"],
@@ -99,9 +107,10 @@ class VisionPipeline:
             "temporal_fusions": self._metrics["total_temporal_fusions"],
             "anpr_attempts": self._metrics["anpr_attempts"],
             "anpr_success": self._metrics["anpr_success"],
-            "latency_p50_ms": round(float(p50), 2),
-            "latency_p95_ms": round(float(p95), 2),
-            "latency_p99_ms": round(float(p99), 2),
+            "latency_p50_ms": p50,
+            "latency_p95_ms": p95,
+            "latency_p99_ms": p99,
+            "latency_provenance": provenance,
             "active_bound_cameras": len(self._active_cameras)
         }
 

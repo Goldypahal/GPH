@@ -22,7 +22,7 @@ class DeadLetterQueueManager:
     """
 
     def __init__(self, max_size: int = 1000):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._dlq: deque = deque(maxlen=max_size)
 
     def enqueue_poison_pill(
@@ -112,7 +112,7 @@ class MicroBatchIngestionWorker:
     FLUSH_INTERVAL_SEC = 0.25
 
     def __init__(self):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._buffer: List[Dict[str, Any]] = []
         self._total_ingested = 0
         self._total_committed = 0
