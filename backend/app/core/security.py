@@ -86,7 +86,14 @@ def get_current_user(
             if user and user.is_active:
                 return user
     
-    # Fallback dev/demo default operator
+    # Strict production enforcement: Never allow anonymous or fallback access in production
+    if settings.ENVIRONMENT == "production":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required: Valid bearer token mandatory in production environment"
+        )
+
+    # Fallback dev/demo default operator for local non-production environments
     user = db.query(User).filter(User.role == "SUPER_ADMIN").first()
     if not user:
         user = db.query(User).first()

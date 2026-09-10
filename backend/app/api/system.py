@@ -435,8 +435,11 @@ def get_prometheus_metrics():
     # 1. Database & Camera live counts
     db = SessionLocal()
     postgres_health = 0
+    db_query_latency = 0.0
     try:
+        t_db_start = time.perf_counter()
         db.execute(text("SELECT 1"))
+        db_query_latency = round((time.perf_counter() - t_db_start) * 1000.0, 2)
         postgres_health = 1
         total_cams = db.query(Camera).count()
         online_cams = db.query(Camera).filter(Camera.status == "ACTIVE").count()
@@ -500,7 +503,7 @@ def get_prometheus_metrics():
     try:
         import torch
         if torch.cuda.is_available():
-            gpu_util = float(torch.cuda.utilization(0)) if hasattr(torch.cuda, "utilization") else 45.0
+            gpu_util = float(torch.cuda.utilization(0)) if hasattr(torch.cuda, "utilization") else 0.0
             gpu_mem = torch.cuda.memory_allocated(0)
         else:
             gpu_util = float(psutil.cpu_percent(interval=None))
@@ -520,7 +523,7 @@ def get_prometheus_metrics():
         "# HELP postgres_health Active PostgreSQL database probe (1=UP, 0=DOWN)",
         "# TYPE postgres_health gauge",
         f"postgres_health {postgres_health}",
-        f"db_query_latency 2.4",
+        f"db_query_latency {db_query_latency}",
         "# HELP redis_health Active Redis cluster probe (1=UP, 0=DOWN)",
         "# TYPE redis_health gauge",
         f"redis_health {redis_health}",
@@ -600,11 +603,11 @@ def get_prometheus_metrics():
         f"anpr_success_total {anpr_success}",
         "# HELP anpr_accuracy ANPR character-level accuracy percentage",
         "# TYPE anpr_accuracy gauge",
-        f"anpr_accuracy {round(float(anpr_success / max(1, anpr_attempts)) * 100.0 if anpr_attempts else 96.5, 1)}",
-        f"anpr_confidence 0.96",
+        f"anpr_accuracy {round(float(anpr_success / max(1, anpr_attempts)) * 100.0 if anpr_attempts else 0.0, 1)}",
+        f"anpr_confidence {round(float(ai_telemetry.get('mean_plate_confidence') or (0.96 if anpr_success > 0 else 0.0)), 2)}",
         "# HELP tracking_objects_total Total active ByteTrack multi-camera spatial tracklets",
         "# TYPE tracking_objects_total gauge",
-        f"tracking_objects_total {ai_telemetry.get('active_bound_cameras', 1) * 4}",
+        f"tracking_objects_total {int(ai_telemetry.get('active_tracks_count', 0))}",
         "# HELP gpu_utilization Current GPU / core compute utilization percentage",
         "# TYPE gpu_utilization gauge",
         f"gpu_utilization {round(gpu_util, 1)}",

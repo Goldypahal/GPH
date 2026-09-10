@@ -53,7 +53,15 @@ class TelemetryTracker:
 
     def get_api_metrics(self) -> Dict[str, float]:
         with self._lock:
-            lats = list(self.api_latencies) or [4.5]
+            lats = list(self.api_latencies)
+            if not lats:
+                return {
+                    "total_requests": self.api_requests,
+                    "total_errors": self.api_errors,
+                    "error_rate_pct": 0.0,
+                    "latency_p50_ms": 0.0,
+                    "latency_p95_ms": 0.0
+                }
             err_ratio = round((self.api_errors / max(1, self.api_requests)) * 100.0, 2)
             sorted_lats = sorted(lats)
             p50 = sorted_lats[int(len(sorted_lats) * 0.5)]

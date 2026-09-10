@@ -1,12 +1,12 @@
 import os
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 class Settings(BaseModel):
     PROJECT_NAME: str = "GIVIN - Gujarat Integrated Video Intelligence Network"
     PROJECT_VERSION: str = "1.2.0"
     API_V1_STR: str = "/api"
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
+    ENVIRONMENT: str = Field(default_factory=lambda: os.getenv("ENVIRONMENT", "development").lower())
     SECRET_KEY: str = Field(default_factory=lambda: os.getenv("SECRET_KEY", ""))
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
@@ -16,7 +16,7 @@ class Settings(BaseModel):
     STORAGE_BACKEND: str = os.getenv("STORAGE_BACKEND", "local").lower() # local | minio | s3
     MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "localhost:9000")
     MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "givinadmin")
-    MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "change-this-development-password")
+    MINIO_SECRET_KEY: str = Field(default_factory=lambda: os.getenv("MINIO_SECRET_KEY", "change-this-development-password"))
     MINIO_SECURE: bool = os.getenv("MINIO_SECURE", "false").lower() in ("true", "1", "yes")
     MINIO_BUCKET_EVIDENCE: str = os.getenv("MINIO_BUCKET_EVIDENCE", "givin-evidence")
     CORS_ORIGINS: list[str] = Field(default_factory=lambda: [
@@ -44,16 +44,18 @@ class Settings(BaseModel):
     IMPOSSIBLE_SPEED_THRESHOLD_KMH: float = float(os.getenv("IMPOSSIBLE_SPEED_THRESHOLD_KMH", "180.0"))
     SUSPICIOUS_SPEED_THRESHOLD_KMH: float = float(os.getenv("SUSPICIOUS_SPEED_THRESHOLD_KMH", "130.0"))
 
-    @field_validator("SECRET_KEY")
-    @classmethod
-    def validate_secret_key(cls, value: str) -> str:
-        if not value:
-            if os.getenv("ENVIRONMENT", "development").lower() == "production":
+    @model_validator(mode="after")
+    def validate_production_security(self) -> "Settings":
+        if self.ENVIRONMENT == "production":
+            if not self.SECRET_KEY or self.SECRET_KEY == "local-development-only-change-me":
                 raise ValueError("SECRET_KEY is required in production")
-            return "local-development-only-change-me"
-        if len(value) < 32:
-            raise ValueError("SECRET_KEY must contain at least 32 characters")
-        return value
+            if len(self.SECRET_KEY) < 32:
+                raise ValueError("SECRET_KEY must contain at least 32 characters")
+            if self.MINIO_SECRET_KEY in ("change-this-development-password", "minioadmin", ""):
+                raise ValueError("MINIO_SECRET_KEY must be set to a secure custom password in production")
+        elif not self.SECRET_KEY:
+            self.SECRET_KEY = "local-development-only-change-me"
+        return self
 
     @field_validator("GIVIN_VISION_MODE")
     @classmethod

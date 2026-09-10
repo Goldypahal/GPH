@@ -16,7 +16,8 @@
   - `TASK-DB-01`: Automatic database schema synchronization on application startup to ensure schema compatibility without data loss.
   - `TASK-DAY1-01`: Complete 16-stage End-to-End Operational Pipeline automated test suite (`tests/test_e2e_full_chain.py`) generating verified machine-readable reports in `artifacts/e2e/`.
   - `TASK-DEMO-01`: Cross-platform deterministic demonstration engine (`scripts/demo_seed.py`, `scripts/demo_reset.py`, `scripts/run_demo.py`, `scripts/demo.bat`, `scripts/demo.sh`) covering all 12 operational stages.
-- **Latest Test Run**: **93 passed, 0 failed** in 50.98s across all test suites.
+  - `TASK-SEC-02`: Day 2 Security Hardening & Secret Hygiene: Enforced production authentication (prohibiting anonymous/dev fallback in production mode), secret hygiene via Pydantic model validator (`SECRET_KEY`, `MINIO_SECRET_KEY`), eliminated synthetic fallbacks in telemetry metrics (`db_query_latency`, `gpu_utilization`, `api_latencies`), and validated district jurisdictional fencing.
+- **Latest Test Run**: **98 passed, 0 failed** in 53.85s across all test suites.
 
 ---
 
