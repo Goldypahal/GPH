@@ -1,13 +1,14 @@
 import os
 import shutil
 from typing import Dict, Any, Optional
-from backend.app.services.storage.base import ObjectStorage
+from backend.app.services.storage.base import ObjectStorage, WORMImmutableViolationError
 from backend.app.core.config import settings
 
 class LocalFileStorage(ObjectStorage):
     """
     Local filesystem storage driver for offline testing, edge buffers,
     and developer environments without active MinIO/S3 daemon.
+    Enforces WORM immutability policies for evidence packages.
     """
 
     def __init__(self, base_dir: Optional[str] = None):
@@ -23,6 +24,12 @@ class LocalFileStorage(ObjectStorage):
 
     def put_object(self, bucket: str, key: str, data: bytes, content_type: str = "image/jpeg") -> str:
         file_path = self._resolve_path(bucket, key)
+        # Enforce WORM: block overwrite if object already exists in evidence vault (excluding append-only custody log)
+        is_evidence = (bucket == settings.MINIO_BUCKET_EVIDENCE or key.startswith("evidence/"))
+        if is_evidence and os.path.exists(file_path) and not key.endswith("chain_of_custody.json"):
+            raise WORMImmutableViolationError(
+                f"WORM Policy Violation: Object '{key}' in vault '{bucket}' is immutable and locked. Overwrite prohibited."
+            )
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "wb") as f:
             f.write(data)
@@ -40,11 +47,17 @@ class LocalFileStorage(ObjectStorage):
         return f"/api/evidence/download/{bucket}/{key}"
 
     def delete_object(self, bucket: str, key: str) -> bool:
+        # Enforce WORM: block deletion of statutory digital evidence
+        if bucket == settings.MINIO_BUCKET_EVIDENCE or key.startswith("evidence/"):
+            raise WORMImmutableViolationError(
+                f"WORM Policy Violation: Object '{key}' in vault '{bucket}' is locked under Section 65B/63 BSA compliance retention policy. Deletion prohibited."
+            )
         file_path = self._resolve_path(bucket, key)
         if os.path.exists(file_path):
             os.remove(file_path)
             return True
         return False
+
 
     def health_check(self) -> Dict[str, Any]:
         try:

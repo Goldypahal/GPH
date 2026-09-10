@@ -77,13 +77,22 @@ class BaseGovAdapter(ABC):
         if self.mode == IntegrationMode.AUTHORIZED_PRODUCTION:
             mtls_cert = os.getenv("GOV_MTLS_CERT_PATH")
             mtls_key = os.getenv("GOV_MTLS_KEY_PATH")
-            vpn_enabled = os.getenv("GSWAN_VPN_ACTIVE", "false").lower() in ("true", "1", "yes")
+            vpn_active = os.getenv("GSWAN_VPN_ACTIVE", "false").lower() in ("true", "1", "yes")
 
-            if not (mtls_cert and mtls_key):
-                logger.warning(
-                    f"[{self.service_name}] Running in production contract mode. "
-                    f"Warning: Client mTLS certificates not mounted at GOV_MTLS_CERT_PATH. Falling back to sandbox proxy."
+            if not (mtls_cert and os.path.exists(mtls_cert) and mtls_key and os.path.exists(mtls_key) and vpn_active):
+                missing = []
+                if not (mtls_cert and os.path.exists(mtls_cert)):
+                    missing.append("mTLS Client Certificate (GOV_MTLS_CERT_PATH)")
+                if not (mtls_key and os.path.exists(mtls_key)):
+                    missing.append("mTLS Client Private Key (GOV_MTLS_KEY_PATH)")
+                if not vpn_active:
+                    missing.append("Active State WAN (GSWAN) VPN Gateway (GSWAN_VPN_ACTIVE=true)")
+
+                raise RuntimeError(
+                    f"[{self.service_name}] AUTHORIZED_PRODUCTION refuses to operate without verified government infrastructure. "
+                    f"Missing: {', '.join(missing)}. Operation rejected to prevent unauthorized data access."
                 )
+
 
     def query(self, identifier: str, requesting_officer: Optional[str] = None) -> Dict[str, Any]:
         """

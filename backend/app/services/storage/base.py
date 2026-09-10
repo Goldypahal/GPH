@@ -1,7 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 
+class WORMImmutableViolationError(RuntimeError):
+    """Raised when an attempt is made to overwrite or delete a WORM-locked evidence object."""
+    pass
+
 class ObjectStorage(ABC):
+
     """
     Abstract Storage Interface for GIVIN Evidence and Media artifacts.
     Decouples storage consumer services from physical backends (MinIO, AWS S3, Ceph, Local).

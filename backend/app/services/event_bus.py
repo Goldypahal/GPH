@@ -72,6 +72,7 @@ class EventBus:
     TOPIC_DLQ = "givin.dlq"
 
     # Backward compatibility aliases
+    TOPIC_CAMERA_FRAMES_RAW = "givin.camera.frames.raw"
     TOPIC_SIGHTINGS_RAW = "givin.sightings.raw"
     TOPIC_SIGHTINGS_NORMALIZED = "givin.sightings.normalized"
     TOPIC_ALERTS_TRIGGERED = "givin.alerts.triggered"
@@ -101,6 +102,14 @@ class EventBus:
             "recent_timestamps": deque(maxlen=200)
         }
         self._broker_mode = self._detect_broker_mode()
+        self._wire_canonical_pipeline()
+
+    def _wire_canonical_pipeline(self):
+        try:
+            from backend.app.services.stream_workers import initialize_canonical_pipeline
+            initialize_canonical_pipeline(self)
+        except Exception as e:
+            logger.warning(f"Could not auto-wire canonical pipeline: {e}")
 
     def _detect_broker_mode(self) -> str:
         """Checks if configured Kafka bootstrap broker is reachable."""
@@ -153,6 +162,9 @@ class EventBus:
                 self._subscribers[self.TOPIC_LEGACY_ALERTS].append(handler)
                 self._subscribers[self.TOPIC_ALERTS_TRIGGERED].append(handler)
                 self._subscribers[self.TOPIC_ALERTS].append(handler)
+            elif topic in (self.TOPIC_CAMERA_FRAMES, self.TOPIC_CAMERA_FRAMES_RAW):
+                self._subscribers[self.TOPIC_CAMERA_FRAMES].append(handler)
+                self._subscribers[self.TOPIC_CAMERA_FRAMES_RAW].append(handler)
 
     def subscribe_consumer_group(self, group_id: str, topic: str, handler: Callable):
         """Registers a consumer group subscriber with partition-aware offset management."""

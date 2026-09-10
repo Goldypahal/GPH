@@ -39,5 +39,10 @@ class AlertBroadcaster:
                 for client in dead:
                     self._clients.discard(client)
 
+    def active_count(self) -> int:
+        return len(self._clients)
+
 
 alert_broadcaster = AlertBroadcaster()
+
+

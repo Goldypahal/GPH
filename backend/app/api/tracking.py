@@ -41,6 +41,12 @@ def search_and_reconstruct_vehicle_route(
 
     return journey
 
+
+@router.get("/route/{plate}", response_model=VehicleJourneySummary)
+def get_vehicle_route_by_plate(plate: str, db: Session = Depends(get_db)):
+    """Convenience alias for route reconstruction by plate."""
+    return search_and_reconstruct_vehicle_route(plate=plate, db=db)
+
 @router.get("/live/{plate}", response_model=LivePursuitPosition)
 def get_live_pursuit_position(
     plate: str,

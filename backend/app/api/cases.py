@@ -528,20 +528,28 @@ def ingest_evidence_vault_package(
     else:
         annotated_bytes = frame_bytes + b"_ANNOTATED"
 
-    # Store package into WORM vault
-    vault_receipt = evidence_vault.store_evidence_package(
-        case_id=case.id,
-        camera_id=cam_id,
-        plate_text=payload.plate_text,
-        original_frame_bytes=frame_bytes,
-        plate_crop_bytes=crop_bytes,
-        annotated_frame_bytes=annotated_bytes,
-        created_by=current_user.username if current_user else "INVESTIGATOR",
-        model_version=payload.model_version or "YOLO11-ANPR-v2.1",
-        anpr_confidence=payload.anpr_confidence or 0.95,
-        classification=payload.classification or "CONFIDENTIAL",
-        retention_years=payload.retention_years or 7
-    )
+    from backend.app.services.storage.base import WORMImmutableViolationError
+    try:
+        # Store package into WORM vault
+        vault_receipt = evidence_vault.store_evidence_package(
+            case_id=case.id,
+            camera_id=cam_id,
+            plate_text=payload.plate_text,
+            original_frame_bytes=frame_bytes,
+            plate_crop_bytes=crop_bytes,
+            annotated_frame_bytes=annotated_bytes,
+            created_by=current_user.username if current_user else "INVESTIGATOR",
+            model_version=payload.model_version or "YOLO11-ANPR-v2.1",
+            anpr_confidence=payload.anpr_confidence or 0.95,
+            classification=payload.classification or "CONFIDENTIAL",
+            retention_years=payload.retention_years or 7
+        )
+    except WORMImmutableViolationError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=f"WORM Policy Violation: Evidence package is locked and immutable. Overwrite prohibited. ({exc})"
+        )
+
 
     # Persist Evidence ORM record
     now_dt = datetime.now(timezone.utc)
@@ -633,5 +641,23 @@ def append_vault_custody_log(
     db.commit()
 
     return result
+
+
+@router.delete("/{case_id}/evidence/{evidence_id}")
+def delete_case_evidence(
+    case_id: str,
+    evidence_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Guards statutory electronic evidence against deletion.
+    Strictly enforces Section 65B IEA / Section 63 BSA WORM retention lock policies.
+    """
+    raise HTTPException(
+        status_code=403,
+        detail="WORM Policy Violation: Evidence records are locked under Section 65B IEA / Section 63 BSA compliance retention policy. Deletion prohibited."
+    )
+
 
 

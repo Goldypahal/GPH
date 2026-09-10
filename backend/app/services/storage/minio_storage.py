@@ -1,13 +1,14 @@
 import io
 from typing import Dict, Any, Optional
 from datetime import timedelta
-from backend.app.services.storage.base import ObjectStorage
+from backend.app.services.storage.base import ObjectStorage, WORMImmutableViolationError
 from backend.app.core.config import settings
 
 class MinIOStorage(ObjectStorage):
     """
     Production-grade MinIO / S3 Object Storage Driver.
     Stores full resolution camera snapshot frames, plate crops, and export evidence packages.
+    Enforces WORM immutability and statutory retention locks.
     """
 
     def __init__(
@@ -45,6 +46,19 @@ class MinIOStorage(ObjectStorage):
         if not self.client:
             raise RuntimeError(f"MinIO client unavailable: {getattr(self, '_init_error', 'Not connected')}")
         self._ensure_bucket(bucket)
+
+        # Enforce WORM: check if object already exists in evidence vault (excluding append-only custody log)
+        if (bucket == settings.MINIO_BUCKET_EVIDENCE or key.startswith("evidence/")) and not key.endswith("chain_of_custody.json"):
+            try:
+                self.client.stat_object(bucket, key)
+                raise WORMImmutableViolationError(
+                    f"WORM Policy Violation: Object '{key}' in vault '{bucket}' is immutable and locked. Overwrite prohibited."
+                )
+            except WORMImmutableViolationError:
+                raise
+            except Exception:
+                pass  # Object does not exist, proceed
+
         stream = io.BytesIO(data)
         self.client.put_object(
             bucket_name=bucket,
@@ -55,6 +69,7 @@ class MinIOStorage(ObjectStorage):
         )
         protocol = "https" if self.secure else "http"
         return f"{protocol}://{self.endpoint}/{bucket}/{key}"
+
 
     def get_object(self, bucket: str, key: str) -> Optional[bytes]:
         if not self.client:
@@ -82,6 +97,10 @@ class MinIOStorage(ObjectStorage):
             return f"/api/evidence/download/{bucket}/{key}"
 
     def delete_object(self, bucket: str, key: str) -> bool:
+        if bucket == settings.MINIO_BUCKET_EVIDENCE or key.startswith("evidence/"):
+            raise WORMImmutableViolationError(
+                f"WORM Policy Violation: Object '{key}' in vault '{bucket}' is locked under Section 65B/63 BSA compliance retention policy. Deletion prohibited."
+            )
         if not self.client:
             return False
         try:

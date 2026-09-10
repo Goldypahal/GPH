@@ -13,7 +13,10 @@ app = FastAPI(
     description="Statewide CCTV Integration, AI Video Analytics & Intelligence Platform for Gujarat Police Hackathon 2026"
 )
 
+from backend.app.core.telemetry import APITelemetryMiddleware
+
 # Keep browser origins explicit. Override with CORS_ORIGINS for deployment.
+app.add_middleware(APITelemetryMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -21,6 +24,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
 
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(cameras.router, prefix=settings.API_V1_STR)

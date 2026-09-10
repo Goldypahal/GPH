@@ -47,7 +47,13 @@ class WatchlistMatcher:
 
         camera = db.query(Camera).filter(Camera.id == sighting.camera_id).first()
         cam_loc = camera.location_name if camera else "Unknown location"
-        alert_uid = f"ALT-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{sighting.id[:4].upper()}"
+        if not sighting.id:
+            import uuid
+            sighting.id = f"sight-{uuid.uuid4().hex[:8]}"
+            db.add(sighting)
+            db.flush()
+        import uuid
+        alert_uid = f"ALT-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6].upper()}"
         alert = Alert(
             alert_uid=alert_uid,
             watchlist_id=item.id,

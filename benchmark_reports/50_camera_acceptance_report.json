@@ -1,0 +1,77 @@
+{
+  "timestamp": "2026-09-10T06:01:36.659390+00:00",
+  "evaluation_scope": "Statewide 50-Camera Multi-District Ingestion & Intelligence",
+  "districts_count": 10,
+  "districts": [
+    "Ahmedabad",
+    "Gandhinagar",
+    "Surat",
+    "Vadodara",
+    "Rajkot",
+    "Bhavnagar",
+    "Jamnagar",
+    "Junagadh",
+    "Kutch",
+    "Mehsana"
+  ],
+  "stages": {
+    "camera_onboarding": {
+      "status": "PASSED",
+      "total_cameras": 50,
+      "lifecycle_passed": 50,
+      "success_rate_pct": 100.0,
+      "average_validation_time_ms": 18.26,
+      "state_machine_stages_validated": [
+        "REGISTER",
+        "VALIDATE",
+        "CONNECT",
+        "AUTH",
+        "HEALTH",
+        "STREAM",
+        "AI_ENABLED"
+      ]
+    },
+    "stream_ingestion": {
+      "status": "PASSED",
+      "events_published": 50,
+      "sightings_committed_to_db": 0,
+      "ingestion_throughput_mps": 169.2,
+      "dlq_poison_pills": 0
+    },
+    "watchlist_alerting": {
+      "status": "PASSED",
+      "hotlist_plate": "GJ01TC5050",
+      "alert_generated": true,
+      "alert_uid": "ALT-20260910060110-0E55CA",
+      "risk_level": "CRITICAL"
+    },
+    "route_reconstruction": {
+      "status": "PASSED",
+      "target_plate": "GJ01TC5050",
+      "corridor_waypoints_count": 14,
+      "origin_camera": "cam-ahm-01-6d7d8d",
+      "terminal_camera": "CAM-AHM-01"
+    },
+    "worm_evidence_vault": {
+      "status": "PASSED",
+      "evidence_id": "EVID-529243CA4935",
+      "sha256_cryptographic_seal": "e4bf6de15a8d54464548948c1963162db295373514f55157a83b9aa9152ef873",
+      "integrity_verified": true,
+      "unauthorized_deletion_blocked": true,
+      "chain_of_custody_updated": true,
+      "legal_standard": "Section 65B Indian Evidence Act / Section 63 Bharatiya Sakshya Adhiniyam"
+    },
+    "telemetry_sla": {
+      "status": "PASSED",
+      "cameras_online": 126,
+      "inference_latency_p50_ms": 19.1,
+      "inference_latency_p95_ms": 24.5,
+      "anpr_accuracy_pct": 96.5,
+      "postgres_health": "UP",
+      "redis_health": "DOWN",
+      "minio_health": "UP"
+    }
+  },
+  "overall_status": "PASSED",
+  "total_duration_seconds": 6.07
+}

@@ -75,14 +75,14 @@ class WatchlistCreate(BaseModel):
     owner_name: Optional[str] = None
     vehicle_make_model: Optional[str] = "Maruti Suzuki Swift"
     vehicle_color: Optional[str] = "Red"
-    risk_level: str = "HIGH"
-    reason: str = "Reported Stolen under IPC 379"
-    case_fir_number: str = "FIR-2026/01"
-    registered_authority: str = "Gujarat Police / eGujCop"
+    risk_level: Optional[str] = "HIGH"
+    reason: Optional[str] = "Reported Stolen under IPC 379"
+    case_fir_number: Optional[str] = "FIR-2026/01"
+    registered_authority: Optional[str] = "Gujarat Police / eGujCop"
 
 class WatchlistOut(WatchlistCreate):
     id: str
-    status: str
+    status: Optional[str] = "ACTIVE"
     created_at: datetime
     class Config:
         from_attributes = True

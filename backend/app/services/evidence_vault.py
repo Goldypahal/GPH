@@ -99,7 +99,11 @@ class EvidenceVaultManager:
             "classification": classification,
             "worm_locked": True,
             "encryption_algorithm": "AES-256-GCM",
-            "jurisdiction": "Gujarat State Police"
+            "jurisdiction": "Gujarat State Police",
+            "statutory_integrity_notice": (
+                "Cryptographic integrity tracking under Section 65B Indian Evidence Act 1872 / Section 63 Bharatiya Sakshya Adhiniyam 2023. "
+                "Statutory admissibility in judicial proceedings requires procedural verification and certification by an authorized gazetted officer."
+            )
         }
         metadata_bytes = json.dumps(metadata, indent=2).encode("utf-8")
         metadata_hash = self.compute_sha256(metadata_bytes)
