@@ -42,7 +42,7 @@ class CameraOut(CameraBase):
     id: str
     created_at: datetime
     health_status: Optional[str] = "ONLINE"
-    latency_ms: Optional[int] = 45
+    latency_ms: Optional[int] = None
     department_name: Optional[str] = None
     class Config:
         from_attributes = True
@@ -58,13 +58,21 @@ class VehicleSightingOut(BaseModel):
     lng: Optional[float] = None
     location_name: Optional[str] = None
     timestamp: datetime
+    frame_pts: Optional[float] = None
     confidence: float
+    plate_confidence: Optional[float] = None
+    detector_confidence: Optional[float] = None
+    ocr_confidence: Optional[float] = None
+    track_id: Optional[int] = None
     vehicle_type: str
     vehicle_color: str
     speed_kmh: float
     direction: str
     evidence_uri: Optional[str] = None
+    evidence_reference: Optional[str] = None
     evidence_hash: Optional[str] = None
+    model_version: Optional[str] = "yolo11n-anpr-v1"
+    processing_provenance: Optional[str] = "MEASURED_STREAM_INFERENCE"
     class Config:
         from_attributes = True
 

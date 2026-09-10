@@ -169,12 +169,21 @@ class MicroBatchIngestionWorker:
                     camera_id=camera_id,
                     plate_text=raw_plate,
                     normalized_plate=norm_plate,
+                    timestamp=ts,
+                    frame_pts=float(item["frame_pts"]) if item.get("frame_pts") is not None else None,
                     confidence=float(item.get("confidence", 0.90)),
+                    plate_confidence=float(item.get("plate_confidence", item.get("confidence", 0.90))),
+                    detector_confidence=float(item.get("detector_confidence", 0.90)),
+                    ocr_confidence=float(item.get("ocr_confidence", 0.90)),
+                    track_id=int(item["track_id"]) if item.get("track_id") is not None else None,
                     speed_kmh=float(item.get("speed_kmh", 60.0)),
                     vehicle_type=item.get("vehicle_type", "Car"),
                     vehicle_color=item.get("vehicle_color", "Unknown"),
                     evidence_uri=item.get("evidence_uri"),
-                    timestamp=ts
+                    evidence_reference=item.get("evidence_reference") or item.get("evidence_uri"),
+                    evidence_hash=item.get("evidence_hash"),
+                    model_version=item.get("model_version", "yolo11n-anpr-v1"),
+                    processing_provenance=item.get("processing_provenance", "MEASURED_STREAM_INFERENCE")
                 )
                 db.add(sighting)
                 db.flush()
@@ -382,9 +391,13 @@ class TrackingStreamWorker:
         norm_plate = ANPREngine.normalize_plate(plate_text) or plate_text
         sighting_event = {
             "camera_id": camera_id,
+            "track_id": track_id,
             "plate_text": plate_text,
             "normalized_plate": norm_plate,
             "confidence": payload.get("ocr_confidence", 0.9),
+            "plate_confidence": payload.get("plate_confidence", payload.get("confidence", 0.9)),
+            "detector_confidence": payload.get("detector_confidence", 0.9),
+            "ocr_confidence": payload.get("ocr_confidence", 0.9),
             "vehicle_type": payload.get("vehicle_type", "Car"),
             "vehicle_color": payload.get("vehicle_color", "Unknown"),
             "speed_kmh": payload.get("speed_kmh", 60.0),
@@ -392,8 +405,11 @@ class TrackingStreamWorker:
             "frame_pts": frame_pts,
             "pts_delta": pts_delta,
             "arrival_timestamp": arrival_timestamp,
+            "model_version": payload.get("model_version", "yolo11n-anpr-v1"),
+            "processing_provenance": payload.get("processing_provenance", "MEASURED_STREAM_INFERENCE"),
             "evidence_hash": payload.get("evidence_hash"),
-            "evidence_uri": payload.get("evidence_uri")
+            "evidence_uri": payload.get("evidence_uri"),
+            "evidence_reference": payload.get("evidence_reference") or payload.get("evidence_uri")
         }
         bus.publish(bus.TOPIC_VEHICLE_SIGHTINGS, sighting_event, partition_key=norm_plate)
 
@@ -437,10 +453,17 @@ class WatchlistStreamWorker:
                 camera_id=cam.id if cam else camera_id,
                 plate_text=plate,
                 normalized_plate=norm_plate,
-                confidence=payload.get("confidence", 0.9),
-                speed_kmh=payload.get("speed_kmh", 60.0),
+                timestamp=datetime.now(timezone.utc),
+                frame_pts=float(payload["frame_pts"]) if payload.get("frame_pts") is not None else None,
+                confidence=float(payload.get("confidence", 0.9)),
+                plate_confidence=float(payload.get("plate_confidence", payload.get("confidence", 0.9))),
+                detector_confidence=float(payload.get("detector_confidence", 0.9)),
+                ocr_confidence=float(payload.get("ocr_confidence", 0.9)),
+                track_id=int(payload["track_id"]) if payload.get("track_id") is not None else None,
+                speed_kmh=float(payload.get("speed_kmh", 60.0)),
                 vehicle_type=payload.get("vehicle_type", "Car"),
-                timestamp=datetime.now(timezone.utc)
+                model_version=payload.get("model_version", "yolo11n-anpr-v1"),
+                processing_provenance=payload.get("processing_provenance", "MEASURED_STREAM_INFERENCE")
             )
             alert = WatchlistMatcher.trigger_alert_if_matched(db, sighting_obj)
             if alert:

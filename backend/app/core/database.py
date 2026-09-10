@@ -44,3 +44,26 @@ def check_db_health() -> Dict[str, Any]:
             "dialect": engine.dialect.name,
             "error": str(e)
         }
+
+def sync_schema_columns():
+    """Ensures database tables match Base.metadata columns without losing data."""
+    try:
+        from sqlalchemy import inspect
+        from backend.app.models import orm
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        with engine.begin() as conn:
+            for table_name, table in Base.metadata.tables.items():
+                if table_name in existing_tables:
+                    existing_cols = {c["name"] for c in inspector.get_columns(table_name)}
+                    for col in table.columns:
+                        if col.name not in existing_cols:
+                            col_type = col.type.compile(engine.dialect)
+                            conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}"))
+    except Exception:
+        pass
+
+# Synchronize missing columns on startup
+sync_schema_columns()
+
+

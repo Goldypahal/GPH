@@ -173,7 +173,12 @@ def validate_camera_lifecycle(camera_id: str, db: Session = Depends(get_db)):
                 is_tcp_connected = True
                 measured_latency_ms = round((time.perf_counter() - t0) * 1000.0, 2)
 
-                # RTSP Handshake probe (RFC 2326 OPTIONS)
+                is_rtsp_authenticated = False
+                auth_scheme = "DIGEST_SHA256"
+                auth_mode = "NOT_VALIDATED"
+                auth_status_str = "NOT_VALIDATED"
+
+                # RTSP Handshake probe (RFC 2326 OPTIONS & DESCRIBE)
                 if parsed.scheme in ("rtsp", "rtsps"):
                     try:
                         s.sendall(b"OPTIONS * RTSP/1.0\r\nCSeq: 1\r\nUser-Agent: GIVIN/2.1\r\n\r\n")
@@ -181,6 +186,17 @@ def validate_camera_lifecycle(camera_id: str, db: Session = Depends(get_db)):
                         resp = s.recv(512)
                         if b"RTSP/1.0" in resp:
                             is_rtsp_handshake = True
+                            # Attempt DESCRIBE probe for genuine authentication truth
+                            s.sendall(f"DESCRIBE {stream_url} RTSP/1.0\r\nCSeq: 2\r\nUser-Agent: GIVIN/2.1\r\nAccept: application/sdp\r\n\r\n".encode())
+                            s.settimeout(0.5)
+                            desc_resp = s.recv(512)
+                            if b"200 OK" in desc_resp:
+                                is_rtsp_authenticated = True
+                                auth_status_str = "AUTHENTICATED"
+                                auth_mode = "MEASURED_STREAM_AUTH"
+                            elif b"401 Unauthorized" in desc_resp:
+                                auth_status_str = "AUTHENTICATION_CHALLENGED_UNVERIFIED"
+                                auth_mode = "CHALLENGE_RECEIVED_NOT_VALIDATED"
                     except Exception:
                         is_rtsp_handshake = False
                 else:
@@ -190,6 +206,10 @@ def validate_camera_lifecycle(camera_id: str, db: Session = Depends(get_db)):
     except Exception:
         measured_latency_ms = None
         is_live_connection = False
+        is_rtsp_authenticated = False
+        auth_scheme = "DIGEST_SHA256"
+        auth_mode = "EXTERNAL_DEPENDENCY_PENDING"
+        auth_status_str = "NOT_VALIDATED"
 
     # 2. Formulate honest lifecycle stages with explicit provenance
     connect_stage = {
@@ -245,13 +265,14 @@ def validate_camera_lifecycle(camera_id: str, db: Session = Depends(get_db)):
         "CONNECT": connect_stage,
         "AUTH": {
             "status": "PASSED",
-            "auth_scheme": "DIGEST_SHA256",
-            "credential_status": "AUTHENTICATED" if is_live_connection else "PRE_CONFIGURED_SANDBOX",
-            "mode": "CREDENTIAL_VERIFIED" if is_live_connection else "SANDBOX_AUTH_MODEL",
+            "auth_scheme": auth_scheme,
+            "credential_status": auth_status_str if is_live_connection else "NOT_VALIDATED",
+            "provenance": "MEASURED" if is_rtsp_authenticated else "NOT_VALIDATED",
+            "mode": auth_mode if is_live_connection else "EXTERNAL_DEPENDENCY_PENDING",
             "message": (
                 "RTSP edge gateway credentials authenticated."
-                if is_live_connection else
-                "Credentials pre-validated for sandbox deployment. Live edge handshake requires active VMS network."
+                if is_rtsp_authenticated else
+                "RTSP authentication not validated: Physical camera endpoint requires live VMS network and valid edge credentials."
             )
         },
         "HEALTH": {
@@ -287,13 +308,13 @@ def validate_camera_lifecycle(camera_id: str, db: Session = Depends(get_db)):
             camera_id=cam.id,
             latency_ms=int(measured_latency_ms) if measured_latency_ms is not None else None,
             packet_loss=None,
-            cpu_usage=26.0,
-            memory_usage=38.0,
-            status="ONLINE"
+            cpu_usage=None,
+            memory_usage=None,
+            status="ONLINE" if is_live_connection else "UNCONFIGURED"
         )
         db.add(health)
     else:
-        cam.health.status = "ONLINE"
+        cam.health.status = "ONLINE" if is_live_connection else "UNCONFIGURED"
         if measured_latency_ms is not None:
             cam.health.latency_ms = int(measured_latency_ms)
 
@@ -325,26 +346,30 @@ def record_camera_heartbeat(
     if not cam.health:
         health = CameraHealth(
             camera_id=cam.id,
-            latency_ms=int(payload.latency_ms or 40),
-            packet_loss=payload.packet_loss or 0.0,
-            cpu_usage=payload.cpu_usage or 25.0,
-            memory_usage=payload.memory_usage or 40.0,
-            status=payload.status
+            latency_ms=int(payload.latency_ms) if payload.latency_ms is not None else None,
+            packet_loss=payload.packet_loss,
+            cpu_usage=payload.cpu_usage,
+            memory_usage=payload.memory_usage,
+            status=payload.status or "ONLINE"
         )
         db.add(health)
     else:
-        cam.health.status = payload.status
-        cam.health.latency_ms = int(payload.latency_ms or 40)
-        cam.health.packet_loss = payload.packet_loss or 0.0
-        cam.health.cpu_usage = payload.cpu_usage or 25.0
-        cam.health.memory_usage = payload.memory_usage or 40.0
+        cam.health.status = payload.status or cam.health.status
+        if payload.latency_ms is not None:
+            cam.health.latency_ms = int(payload.latency_ms)
+        if payload.packet_loss is not None:
+            cam.health.packet_loss = payload.packet_loss
+        if payload.cpu_usage is not None:
+            cam.health.cpu_usage = payload.cpu_usage
+        if payload.memory_usage is not None:
+            cam.health.memory_usage = payload.memory_usage
 
     db.commit()
     return {
         "camera_id": cam.id,
         "logical_camera_id": cam.logical_camera_id,
         "status": cam.status,
-        "health_status": payload.status,
+        "health_status": payload.status or "ONLINE",
         "latency_ms": payload.latency_ms,
         "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
@@ -357,7 +382,7 @@ def onboard_camera(cam_in: CameraBase, db: Session = Depends(get_db)):
     cam_data["status"] = cam_data.get("status") or "ACTIVE"
     new_cam = Camera(**cam_data)
     db.add(new_cam); db.flush()
-    db.add(CameraHealth(camera_id=new_cam.id, latency_ms=42, packet_loss=0.1, cpu_usage=25.0, memory_usage=40.0, status="ONLINE"))
+    db.add(CameraHealth(camera_id=new_cam.id, latency_ms=None, packet_loss=None, cpu_usage=None, memory_usage=None, status="ONLINE"))
     db.commit(); db.refresh(new_cam)
     res = CameraOut.from_orm(new_cam); res.health_status = "ONLINE"; return res
 

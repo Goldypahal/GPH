@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, ForeignKey, Text, JSON
+from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, ForeignKey, Text, JSON, Index
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
 
@@ -173,12 +173,12 @@ class CameraHealth(Base):
     id = Column(String(36), primary_key=True, default=gen_uuid)
     camera_id = Column(String(36), ForeignKey("cameras.id"), unique=True, nullable=False)
     last_seen = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    latency_ms = Column(Integer, default=45)
-    packet_loss = Column(Float, default=0.2)
-    cpu_usage = Column(Float, default=34.5)
-    memory_usage = Column(Float, default=52.0)
-    clock_drift_ms = Column(Float, default=5.0)
-    status = Column(String(50), default="ONLINE")
+    latency_ms = Column(Integer, nullable=True, default=None)
+    packet_loss = Column(Float, nullable=True, default=None)
+    cpu_usage = Column(Float, nullable=True, default=None)
+    memory_usage = Column(Float, nullable=True, default=None)
+    clock_drift_ms = Column(Float, nullable=True, default=None)
+    status = Column(String(50), default="UNCONFIGURED")
 
     camera = relationship("Camera", back_populates="health")
 
@@ -248,16 +248,29 @@ class VehicleSighting(Base):
     id = Column(String(36), primary_key=True, default=gen_uuid)
     plate_text = Column(String(50), nullable=False, index=True)
     normalized_plate = Column(String(50), nullable=False, index=True)
-    camera_id = Column(String(36), ForeignKey("cameras.id"), nullable=False)
+    camera_id = Column(String(36), ForeignKey("cameras.id"), nullable=False, index=True)
     timestamp = Column(DateTime, nullable=False, index=True)
+    frame_pts = Column(Float, nullable=True, index=True)
     confidence = Column(Float, default=0.92)
+    plate_confidence = Column(Float, nullable=True)
+    detector_confidence = Column(Float, nullable=True)
+    ocr_confidence = Column(Float, nullable=True)
+    track_id = Column(Integer, nullable=True, index=True)
     vehicle_type = Column(String(50), default="Car")
     vehicle_color = Column(String(50), default="White")
     speed_kmh = Column(Float, default=55.0)
     direction = Column(String(50), default="Northbound")
     bbox_json = Column(Text, nullable=True)
     evidence_uri = Column(String(500), nullable=True)
+    evidence_reference = Column(String(500), nullable=True)
     evidence_hash = Column(String(64), nullable=True)
+    model_version = Column(String(100), nullable=True, default="yolo11n-anpr-v1")
+    processing_provenance = Column(String(50), default="MEASURED_STREAM_INFERENCE")
+
+    __table_args__ = (
+        Index("ix_sighting_cam_time", "camera_id", "timestamp"),
+        Index("ix_sighting_plate_time", "normalized_plate", "timestamp"),
+    )
     
     camera = relationship("Camera", back_populates="sightings")
     alerts = relationship("Alert", back_populates="sighting")

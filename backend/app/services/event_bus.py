@@ -239,6 +239,8 @@ class EventBus:
             except Exception as e:
                 dlq_manager.enqueue_poison_pill(topic, payload, f"MicroBatch enqueue error: {e}")
 
+        dispatch_start = time.perf_counter()
+
         # Dispatch registered topic handlers with retry and DLQ isolation
         for h in handlers:
             dispatched = False
@@ -276,6 +278,10 @@ class EventBus:
                         f"Consumer group [{group_id}] failure: {ex}"
                     )
 
+        lag_ms = round((time.perf_counter() - dispatch_start) * 1000.0, 2)
+        with self._lock:
+            self._metrics["last_consumer_lag_ms"] = lag_ms
+
         return {
             "status": "PUBLISHED",
             "event_id": event_id,
@@ -305,6 +311,7 @@ class EventBus:
                 self._metrics["topic_counts"][self.TOPIC_LEGACY_ALERTS]
             )
 
+            lag_val = self._metrics.get("last_consumer_lag_ms")
             return {
                 "broker_mode": self._broker_mode,
                 "total_events_published": self._metrics["total_published"],
@@ -315,7 +322,8 @@ class EventBus:
                 "retried_events": self._metrics["retried_events"],
                 "current_throughput_mps": mps,
                 "average_throughput_mps": avg_mps,
-                "consumer_lag_ms": 1.2,
+                "consumer_lag_ms": lag_val if lag_val is not None else 0.0,
+                "consumer_lag_provenance": "MEASURED" if lag_val is not None else "UNAVAILABLE",
                 "canonical_topics": [
                     self.TOPIC_CAMERA_FRAMES,
                     self.TOPIC_VEHICLE_DETECTIONS,
