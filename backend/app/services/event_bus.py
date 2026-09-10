@@ -59,17 +59,22 @@ class EventBus:
     across Kafka partition topics with consumer group coordination.
     """
 
-    # 10 Canonical Kafka Topics
+    # Canonical Topics (Task Group 4)
     TOPIC_CAMERA_FRAMES = "givin.camera.frames"
+    TOPIC_CAMERA_SIGHTINGS = "camera.sightings"
+    TOPIC_CAMERA_HEALTH = "camera.health"
+    TOPIC_ANPR_EVENTS = "anpr.events"
+    TOPIC_TRACKING_EVENTS = "tracking.events"
+    TOPIC_WATCHLIST_MATCHES = "watchlist.matches"
+    TOPIC_CORRELATION_EVENTS = "correlation.events"
+    TOPIC_ALERTS = "alerts"
+    TOPIC_CASES = "cases"
+    TOPIC_AUDIT = "audit"
+    TOPIC_DLQ = "givin.dlq"
+    TOPIC_EVIDENCE = "givin.evidence"
     TOPIC_VEHICLE_DETECTIONS = "givin.vehicle.detections"
     TOPIC_ANPR_RESULTS = "givin.anpr.results"
-    TOPIC_TRACKING_EVENTS = "givin.tracking.events"
     TOPIC_VEHICLE_SIGHTINGS = "givin.vehicle.sightings"
-    TOPIC_WATCHLIST_MATCHES = "givin.watchlist.matches"
-    TOPIC_ALERTS = "givin.alerts"
-    TOPIC_EVIDENCE = "givin.evidence"
-    TOPIC_AUDIT = "givin.audit"
-    TOPIC_DLQ = "givin.dlq"
 
     # Backward compatibility aliases
     TOPIC_CAMERA_FRAMES_RAW = "givin.camera.frames.raw"
@@ -101,7 +106,7 @@ class EventBus:
             "topic_counts": defaultdict(int),
             "recent_timestamps": deque(maxlen=200)
         }
-        self._broker_mode = self._detect_broker_mode()
+        self._event_bus_mode, self._broker_mode = self._detect_broker_mode()
         self._wire_canonical_pipeline()
 
     def _wire_canonical_pipeline(self):
@@ -111,8 +116,8 @@ class EventBus:
         except Exception as e:
             logger.warning(f"Could not auto-wire canonical pipeline: {e}")
 
-    def _detect_broker_mode(self) -> str:
-        """Checks if configured Kafka bootstrap broker is reachable."""
+    def _detect_broker_mode(self) -> Tuple[str, str]:
+        """Checks if configured Kafka bootstrap broker is reachable, falls back to Redis or in-process."""
         try:
             host_port = settings.KAFKA_BOOTSTRAP_SERVERS.split(",")[0].strip()
             if ":" in host_port:
@@ -122,9 +127,20 @@ class EventBus:
                 host, port = host_port, 9092
 
             with socket.create_connection((host, port), timeout=0.5):
-                return "KRAFT_KAFKA_CLUSTER (Live Broker)"
+                return "KAFKA", "KRAFT_KAFKA_CLUSTER (Live Broker)"
         except Exception:
-            return "RESILIENT_STREAM_BROKER (Kafka/Redis-compatible zero-downtime engine)"
+            pass
+
+        try:
+            from backend.app.core.redis_client import RedisStateClient
+            r_client = RedisStateClient()
+            if getattr(r_client, "_is_connected", False):
+                return "REDIS", "REDIS_STREAMS (Distributed State Broker)"
+        except Exception:
+            pass
+
+        return "IN_PROCESS", "RESILIENT_IN_PROCESS (Deterministic In-Memory Engine)"
+
 
     @classmethod
     def compute_partition(cls, partition_key: str, num_partitions: int = NUM_PARTITIONS) -> int:
@@ -312,8 +328,13 @@ class EventBus:
             )
 
             lag_val = self._metrics.get("last_consumer_lag_ms")
+            is_kafka = (self._event_bus_mode == "KAFKA")
             return {
+                "event_bus_mode": self._event_bus_mode,
                 "broker_mode": self._broker_mode,
+                "kafka_connected": is_kafka,
+                "kafka_throughput_mps": mps if is_kafka else None,
+                "kafka_provenance": "MEASURED" if is_kafka else "NOT_CONFIGURED (In-Process Fallback Active)",
                 "total_events_published": self._metrics["total_published"],
                 "total_events_processed": self._metrics["total_processed"],
                 "total_published": self._metrics["total_published"],
@@ -324,6 +345,7 @@ class EventBus:
                 "average_throughput_mps": avg_mps,
                 "consumer_lag_ms": lag_val if lag_val is not None else 0.0,
                 "consumer_lag_provenance": "MEASURED" if lag_val is not None else "UNAVAILABLE",
+
                 "canonical_topics": [
                     self.TOPIC_CAMERA_FRAMES,
                     self.TOPIC_VEHICLE_DETECTIONS,

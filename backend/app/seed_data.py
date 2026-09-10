@@ -297,205 +297,210 @@ def seed_database():
             print("Sample Case seeded successfully.")
 
         # Check if already seeded base data
-        if db.query(Department).count() > 0:
-            print("Base camera/department data already present. Seeding check complete.")
-            return
-
-        print("=== Seeding 26 Gujarat Government Departments ===")
-        dept_map = {}
-        for d in DEPARTMENTS_DATA:
-            dept = Department(
-                name=d["name"],
-                code=d["code"],
-                category=d["category"],
-                contact_email=f"cctv.{d['code'].lower()}@gujarat.gov.in",
-                contact_phone="+91-79-23250000"
-            )
-            db.add(dept)
-            db.flush()
-            dept_map[d["code"]] = dept.id
-
-        db.commit()
-
-        print("=== Seeding 50 Heterogeneous Cameras ===")
-        cam_code_map = {}
-        for c in CAMERAS_DATA:
-            dept_id = dept_map.get(c["dept"], list(dept_map.values())[0])
-            cam = Camera(
-                logical_camera_id=c["code"],
-                name=c["name"],
-                department_id=dept_id,
-                district=c["district"],
-                location_name=c["loc"],
-                lat=c["lat"],
-                lng=c["lng"],
-                altitude=18.5,
-                fov_angle=90.0,
-                fov_range_m=120.0,
-                vendor=c["vendor"],
-                model=f"{c['vendor']}-PRO-{c['res']}",
-                camera_type="IP ANPR High-Speed",
-                resolution=c["res"],
-                fps=25,
-                protocol=c["proto"],
-                stream_url=f"/api/cameras/stream/{c['code']}",
-                vms_type=c["vms"],
-                storage_type="Local NVR / Edge Buffer",
-                retention_days=c["ret"],
-                status=c["stat"],
-                is_public_domain=True
-            )
-            db.add(cam)
-            db.flush()
-            cam_code_map[c["code"]] = cam.id
-
-            # Create Camera Health record
-            health = CameraHealth(
-                camera_id=cam.id,
-                last_seen=datetime.now(timezone.utc),
-                latency_ms=38 if c["stat"] == "ACTIVE" else 145,
-                packet_loss=0.1 if c["stat"] == "ACTIVE" else 2.5,
-                cpu_usage=28.0 if c["stat"] == "ACTIVE" else 88.0,
-                memory_usage=44.0,
-                status="ONLINE" if c["stat"] == "ACTIVE" else "DEGRADED"
-            )
-            db.add(health)
-
-        db.commit()
-
-        print("=== Seeding Representative Watchlists ===")
-        wl_map = {}
-        for w in WATCHLIST_DATA:
-            wl = Watchlist(
-                list_name="State Police Central Hotlist",
-                entity_type="VEHICLE",
-                vehicle_number=w["vehicle_number"],
-                owner_name=w["owner_name"],
-                vehicle_make_model=w["vehicle_make_model"],
-                vehicle_color=w["vehicle_color"],
-                risk_level=w["risk_level"],
-                reason=w["reason"],
-                case_fir_number=w["case_fir_number"],
-                registered_authority=w["registered_authority"],
-                status="ACTIVE"
-            )
-            db.add(wl)
-            db.flush()
-            wl_map[w["vehicle_number"]] = wl
-
-        db.commit()
-
-        print("=== Seeding Multi-Camera Journey for Designated Test Vehicle (GJ01AB1234) ===")
-        # Scenario: Robbery vehicle GJ01AB1234 travelled from Ahmedabad through Gandhinagar, Vadodara, Surat to Valsad border
-        now = datetime.now(timezone.utc)
-        test_journey_cams = [
-            ("CAM-GJ-AHM-01", now - timedelta(hours=4, minutes=45), 54.0, "Car", "Red"),
-            ("CAM-GJ-GND-01", now - timedelta(hours=3, minutes=50), 68.0, "Car", "Red"),
-            ("CAM-GJ-BRC-01", now - timedelta(hours=2, minutes=30), 78.0, "Car", "Red"),
-            ("CAM-GJ-SRT-01", now - timedelta(hours=1, minutes=15), 82.0, "Car", "Red"),
-            ("CAM-GJ-VLS-01", now - timedelta(minutes=18), 71.0, "Car", "Red")
-        ]
-
-        stolen_wl = wl_map["GJ01AB1234"]
-        last_sighting_id = None
-
-        for cam_code, s_time, speed, vtype, color in test_journey_cams:
-            cam_id = cam_code_map.get(cam_code)
-            if not cam_id:
-                continue
-
-            raw_crop_data = f"PLATE:GJ01AB1234:{cam_code}:{s_time.isoformat()}".encode()
-            img_hash = generate_sha256_hash(raw_crop_data)
-            
-            sighting = VehicleSighting(
-                plate_text="GJ01AB1234",
-                normalized_plate="GJ01AB1234",
-                camera_id=cam_id,
-                timestamp=s_time,
-                confidence=0.96,
-                vehicle_type=vtype,
-                vehicle_color=color,
-                speed_kmh=speed,
-                direction="Southbound (towards Mumbai)",
-                evidence_uri=f"/api/analytics/evidence/{img_hash[:16]}.jpg",
-                evidence_hash=img_hash
-            )
-            db.add(sighting)
-            db.flush()
-            last_sighting_id = sighting.id
-
-        # Also seed other normal traffic sightings for rich demonstration
-        extra_vehicles = [
-            ("GJ06XY9876", "CAM-GJ-BRC-01", now - timedelta(hours=1, minutes=10), 65.0, "SUV", "White", "HIGH"),
-            ("GJ05CD5521", "CAM-GJ-SRT-02", now - timedelta(minutes=42), 52.0, "SUV", "Black", "CRITICAL"),
-            ("GJ27EF8890", "CAM-GJ-DHD-01", now - timedelta(hours=2, minutes=5), 45.0, "Truck", "Blue", "HIGH"),
-            ("GJ18ZZ4321", "CAM-GJ-GND-02", now - timedelta(minutes=30), 60.0, "Car", "Blue", "HIGH"),
-            ("GJ03KL6654", "CAM-GJ-RAJ-01", now - timedelta(hours=3, minutes=12), 40.0, "Truck", "Yellow", "HIGH"),
-            # Normal innocent vehicles:
-            ("GJ01KJ9988", "CAM-GJ-AHM-02", now - timedelta(minutes=15), 48.0, "Car", "Silver", None),
-            ("GJ05RT1122", "CAM-GJ-SRT-01", now - timedelta(minutes=8), 75.0, "Car", "White", None),
-            ("GJ10AB4455", "CAM-GJ-JAM-01", now - timedelta(minutes=5), 62.0, "SUV", "Grey", None),
-            ("GJ11QQ7890", "CAM-GJ-SMN-01", now - timedelta(minutes=2), 35.0, "Car", "Red", None)
-        ]
-
-        for plate, cam_code, s_time, speed, vtype, color, risk in extra_vehicles:
-            cam_id = cam_code_map.get(cam_code)
-            if not cam_id:
-                continue
-
-            raw_crop = f"PLATE:{plate}:{cam_code}:{s_time.isoformat()}".encode()
-            h = generate_sha256_hash(raw_crop)
-            norm = ANPREngine.normalize_plate(plate)
-
-            sighting = VehicleSighting(
-                plate_text=plate,
-                normalized_plate=norm,
-                camera_id=cam_id,
-                timestamp=s_time,
-                confidence=0.94,
-                vehicle_type=vtype,
-                vehicle_color=color,
-                speed_kmh=speed,
-                direction="In-Transit",
-                evidence_uri=f"/api/analytics/evidence/{h[:16]}.jpg",
-                evidence_hash=h
-            )
-            db.add(sighting)
-            db.flush()
-
-            # If it's a watchlist vehicle, create an active Alert
-            if risk and plate in wl_map:
-                matched_wl = wl_map[plate]
-                alert_uid = f"ALT-{s_time.strftime('%Y%m%d%H%M%S')}-{sighting.id[:4].upper()}"
-                alert = Alert(
-                    alert_uid=alert_uid,
-                    watchlist_id=matched_wl.id,
-                    sighting_id=sighting.id,
-                    camera_id=cam_id,
-                    plate_text=plate,
-                    risk_level=risk,
-                    status="NEW",
-                    remarks=f"Real-time ANPR Match against eGujCop / VAHAN Hotlist. Reason: {matched_wl.reason} [FIR: {matched_wl.case_fir_number}]",
-                    dispatched_unit=None
+        # 1. Departments
+        dept_map = {d.code: d.id for d in db.query(Department).all()}
+        if not dept_map:
+            print("=== Seeding 26 Gujarat Government Departments ===")
+            for d in DEPARTMENTS_DATA:
+                dept = Department(
+                    name=d["name"],
+                    code=d["code"],
+                    category=d["category"],
+                    contact_email=f"cctv.{d['code'].lower()}@gujarat.gov.in",
+                    contact_phone="+91-79-23250000"
                 )
-                db.add(alert)
+                db.add(dept)
+                db.flush()
+                dept_map[d["code"]] = dept.id
+            db.commit()
 
-        # Create alert for the last sighting of designated test vehicle GJ01AB1234
-        if last_sighting_id:
-            alert_uid = f"ALT-{now.strftime('%Y%m%d%H%M%S')}-VLS1"
-            vls_cam_id = cam_code_map["CAM-GJ-VLS-01"]
-            desig_alert = Alert(
-                alert_uid=alert_uid,
-                watchlist_id=stolen_wl.id,
-                sighting_id=last_sighting_id,
-                camera_id=vls_cam_id,
-                plate_text="GJ01AB1234",
-                risk_level="CRITICAL",
-                status="NEW",
-                remarks="SUSPECT DETECTED AT BORDER CHECKPOINT! Moving Southbound on NH-48 towards Maharashtra border.",
-                dispatched_unit="PCR Van 12 (Bhilad Outpost)"
-            )
-            db.add(desig_alert)
+        # 2. Cameras
+        cam_code_map = {c.logical_camera_id: c.id for c in db.query(Camera).all()}
+        if not cam_code_map:
+            print("=== Seeding 50 Heterogeneous Cameras ===")
+            for c in CAMERAS_DATA:
+                dept_id = dept_map.get(c["dept"], list(dept_map.values())[0])
+                cam = Camera(
+                    logical_camera_id=c["code"],
+                    name=c["name"],
+                    department_id=dept_id,
+                    district=c["district"],
+                    location_name=c["loc"],
+                    lat=c["lat"],
+                    lng=c["lng"],
+                    altitude=18.5,
+                    fov_angle=90.0,
+                    fov_range_m=120.0,
+                    vendor=c["vendor"],
+                    model=f"{c['vendor']}-PRO-{c['res']}",
+                    camera_type="IP ANPR High-Speed",
+                    resolution=c["res"],
+                    fps=25,
+                    protocol=c["proto"],
+                    stream_url=f"/api/cameras/stream/{c['code']}",
+                    vms_type=c["vms"],
+                    storage_type="Local NVR / Edge Buffer",
+                    retention_days=c["ret"],
+                    status=c["stat"],
+                    is_public_domain=True
+                )
+                db.add(cam)
+                db.flush()
+                cam_code_map[c["code"]] = cam.id
+
+                # Create Camera Health record
+                health = CameraHealth(
+                    camera_id=cam.id,
+                    last_seen=datetime.now(timezone.utc),
+                    latency_ms=38 if c["stat"] == "ACTIVE" else 145,
+                    packet_loss=0.1 if c["stat"] == "ACTIVE" else 2.5,
+                    cpu_usage=28.0 if c["stat"] == "ACTIVE" else 88.0,
+                    memory_usage=44.0,
+                    status="ONLINE" if c["stat"] == "ACTIVE" else "DEGRADED"
+                )
+                db.add(health)
+            db.commit()
+
+        # 3. Watchlists
+        wl_map = {w.vehicle_number: w for w in db.query(Watchlist).all()}
+        if len(wl_map) < len(WATCHLIST_DATA):
+            print("=== Seeding Representative Watchlists ===")
+            for w in WATCHLIST_DATA:
+                if w["vehicle_number"] not in wl_map:
+                    wl = Watchlist(
+                        list_name="State Police Central Hotlist",
+                        entity_type="VEHICLE",
+                        vehicle_number=w["vehicle_number"],
+                        owner_name=w["owner_name"],
+                        vehicle_make_model=w["vehicle_make_model"],
+                        vehicle_color=w["vehicle_color"],
+                        risk_level=w["risk_level"],
+                        reason=w["reason"],
+                        case_fir_number=w["case_fir_number"],
+                        registered_authority=w["registered_authority"],
+                        status="ACTIVE"
+                    )
+                    db.add(wl)
+                    db.flush()
+                    wl_map[w["vehicle_number"]] = wl
+            db.commit()
+
+        # 4. Multi-Camera Journey for GJ01AB1234
+        if db.query(VehicleSighting).filter(VehicleSighting.plate_text == "GJ01AB1234").count() == 0:
+            print("=== Seeding Multi-Camera Journey for Designated Test Vehicle (GJ01AB1234) ===")
+            # Scenario: Robbery vehicle GJ01AB1234 travelled from Ahmedabad through Gandhinagar, Vadodara, Surat to Valsad border
+            now = datetime.now(timezone.utc)
+            test_journey_cams = [
+                ("CAM-GJ-AHM-01", now - timedelta(hours=4, minutes=45), 54.0, "Car", "Red"),
+                ("CAM-GJ-GND-01", now - timedelta(hours=3, minutes=50), 68.0, "Car", "Red"),
+                ("CAM-GJ-BRC-01", now - timedelta(hours=2, minutes=30), 78.0, "Car", "Red"),
+                ("CAM-GJ-SRT-01", now - timedelta(hours=1, minutes=15), 82.0, "Car", "Red"),
+                ("CAM-GJ-VLS-01", now - timedelta(minutes=18), 71.0, "Car", "Red")
+            ]
+
+            stolen_wl = wl_map.get("GJ01AB1234")
+            last_sighting_id = None
+
+            for cam_code, s_time, speed, vtype, color in test_journey_cams:
+                cam_id = cam_code_map.get(cam_code)
+                if not cam_id:
+                    continue
+
+                raw_crop_data = f"PLATE:GJ01AB1234:{cam_code}:{s_time.isoformat()}".encode()
+                img_hash = generate_sha256_hash(raw_crop_data)
+                
+                sighting = VehicleSighting(
+                    plate_text="GJ01AB1234",
+                    normalized_plate="GJ01AB1234",
+                    camera_id=cam_id,
+                    timestamp=s_time,
+                    confidence=0.96,
+                    vehicle_type=vtype,
+                    vehicle_color=color,
+                    speed_kmh=speed,
+                    direction="Southbound (towards Mumbai)",
+                    evidence_uri=f"/api/analytics/evidence/{img_hash[:16]}.jpg",
+                    evidence_hash=img_hash
+                )
+                db.add(sighting)
+                db.flush()
+                last_sighting_id = sighting.id
+
+            # Also seed other normal traffic sightings for rich demonstration
+            extra_vehicles = [
+                ("GJ06XY9876", "CAM-GJ-BRC-01", now - timedelta(hours=1, minutes=10), 65.0, "SUV", "White", "HIGH"),
+                ("GJ05CD5521", "CAM-GJ-SRT-02", now - timedelta(minutes=42), 52.0, "SUV", "Black", "CRITICAL"),
+                ("GJ27EF8890", "CAM-GJ-DHD-01", now - timedelta(hours=2, minutes=5), 45.0, "Truck", "Blue", "HIGH"),
+                ("GJ18ZZ4321", "CAM-GJ-GND-02", now - timedelta(minutes=30), 60.0, "Car", "Blue", "HIGH"),
+                ("GJ03KL6654", "CAM-GJ-RAJ-01", now - timedelta(hours=3, minutes=12), 40.0, "Truck", "Yellow", "HIGH"),
+                # Normal innocent vehicles:
+                ("GJ01KJ9988", "CAM-GJ-AHM-02", now - timedelta(minutes=15), 48.0, "Car", "Silver", None),
+                ("GJ05RT1122", "CAM-GJ-SRT-01", now - timedelta(minutes=8), 75.0, "Car", "White", None),
+                ("GJ10AB4455", "CAM-GJ-JAM-01", now - timedelta(minutes=5), 62.0, "SUV", "Grey", None),
+                ("GJ11QQ7890", "CAM-GJ-SMN-01", now - timedelta(minutes=2), 35.0, "Car", "Red", None)
+            ]
+
+            for plate, cam_code, s_time, speed, vtype, color, risk in extra_vehicles:
+                cam_id = cam_code_map.get(cam_code)
+                if not cam_id:
+                    continue
+
+                raw_crop = f"PLATE:{plate}:{cam_code}:{s_time.isoformat()}".encode()
+                h = generate_sha256_hash(raw_crop)
+                norm = ANPREngine.normalize_plate(plate)
+
+                sighting = VehicleSighting(
+                    plate_text=plate,
+                    normalized_plate=norm,
+                    camera_id=cam_id,
+                    timestamp=s_time,
+                    confidence=0.94,
+                    vehicle_type=vtype,
+                    vehicle_color=color,
+                    speed_kmh=speed,
+                    direction="In-Transit",
+                    evidence_uri=f"/api/analytics/evidence/{h[:16]}.jpg",
+                    evidence_hash=h
+                )
+                db.add(sighting)
+                db.flush()
+
+                # If it's a watchlist vehicle, create an active Alert
+                if risk and plate in wl_map:
+                    matched_wl = wl_map[plate]
+                    alert_uid = f"ALT-{s_time.strftime('%Y%m%d%H%M%S')}-{sighting.id[:4].upper()}"
+                    alert = Alert(
+                        alert_uid=alert_uid,
+                        watchlist_id=matched_wl.id,
+                        sighting_id=sighting.id,
+                        camera_id=cam_id,
+                        plate_text=plate,
+                        risk_level=risk,
+                        status="NEW",
+                        remarks=f"Real-time ANPR Match against eGujCop / VAHAN Hotlist. Reason: {matched_wl.reason} [FIR: {matched_wl.case_fir_number}]",
+                        dispatched_unit=None
+                    )
+                    db.add(alert)
+
+            # Create alert for the last sighting of designated test vehicle GJ01AB1234
+            if last_sighting_id and stolen_wl:
+                alert_uid = f"ALT-{now.strftime('%Y%m%d%H%M%S')}-VLS1"
+                vls_cam_id = cam_code_map.get("CAM-GJ-VLS-01", list(cam_code_map.values())[0])
+                desig_alert = Alert(
+                    alert_uid=alert_uid,
+                    watchlist_id=stolen_wl.id,
+                    sighting_id=last_sighting_id,
+                    camera_id=vls_cam_id,
+                    plate_text="GJ01AB1234",
+                    risk_level="CRITICAL",
+                    status="NEW",
+                    remarks="SUSPECT DETECTED AT BORDER CHECKPOINT! Moving Southbound on NH-48 towards Maharashtra border.",
+                    dispatched_unit="PCR Van 12 (Bhilad Outpost)"
+                )
+                db.add(desig_alert)
+
+            db.commit()
+
 
         # Create Default RBAC Users
         print("Seeding RBAC Users...")
@@ -548,50 +553,54 @@ def seed_database():
         ]
 
         for u in default_users:
-            user_obj = User(
-                username=u["username"],
-                email=u["email"],
-                full_name=u["full_name"],
-                role=u["role"],
-                jurisdiction_district=u["jurisdiction_district"],
-                department_code=u["department_code"],
-                password_hash=hash_password(u["password"]),
-                is_active=True
-            )
-            db.add(user_obj)
+            existing_user = db.query(User).filter(User.username == u["username"]).first()
+            if not existing_user:
+                user_obj = User(
+                    username=u["username"],
+                    email=u["email"],
+                    full_name=u["full_name"],
+                    role=u["role"],
+                    jurisdiction_district=u["jurisdiction_district"],
+                    department_code=u["department_code"],
+                    password_hash=hash_password(u["password"]),
+                    is_active=True
+                )
+                db.add(user_obj)
 
         # Create Sample Investigation Case
         print("Seeding Sample Investigation Case...")
-        sample_case = Case(
-            case_number="CASE-2026-GJ-0042",
-            title="Silver Swift Interstate Interception & Grand Larceny",
-            fir_number="CR-I/2026/0491",
-            status="INVESTIGATING",
-            priority="CRITICAL",
-            assigned_investigator="Inspector Vikram Patel",
-            jurisdiction_district="Ahmedabad",
-            target_vehicle_plate="GJ01AB1234",
-            created_from_alert_id="ALT-SEED-01",
-            description="Vehicle flagged at multiple NH-48 checkposts. Trajectory verified from SG Highway to Bhilad Interstate Border."
-        )
-        db.add(sample_case)
-        db.flush()
-
-        # Add Timeline Entries to Case
-        sample_entries = [
-            ("INVESTIGATION_INITIATED", "Case opened following real-time alert trigger at SG Highway ANPR."),
-            ("ROUTE_VERIFIED", "Cross-camera multi-hop trajectory confirmed: Ahmedabad -> Vadodara -> Surat -> Valsad (Bhilad Checkpost). Implied speed within legal thresholds (avg 78.4 km/h)."),
-            ("GOV_INTEL_FETCHED", "eGujCop criminal record match verified: 2 previous vehicle theft priors linked to target.")
-        ]
-        for title, note in sample_entries:
-            tl = CaseTimelineEntry(
-                case_id=sample_case.id,
-                entry_type="NOTE",
-                title=title,
-                content=note,
-                created_by="Inspector Vikram Patel"
+        existing_case = db.query(Case).filter(Case.case_number == "CASE-2026-GJ-0042").first()
+        if not existing_case:
+            sample_case = Case(
+                case_number="CASE-2026-GJ-0042",
+                title="Silver Swift Interstate Interception & Grand Larceny",
+                fir_number="CR-I/2026/0491",
+                status="INVESTIGATING",
+                priority="CRITICAL",
+                assigned_investigator="Inspector Vikram Patel",
+                jurisdiction_district="Ahmedabad",
+                target_vehicle_plate="GJ01AB1234",
+                created_from_alert_id="ALT-SEED-01",
+                description="Vehicle flagged at multiple NH-48 checkposts. Trajectory verified from SG Highway to Bhilad Interstate Border."
             )
-            db.add(tl)
+            db.add(sample_case)
+            db.flush()
+
+            # Add Timeline Entries to Case
+            sample_entries = [
+                ("INVESTIGATION_INITIATED", "Case opened following real-time alert trigger at SG Highway ANPR."),
+                ("ROUTE_VERIFIED", "Cross-camera multi-hop trajectory confirmed: Ahmedabad -> Vadodara -> Surat -> Valsad (Bhilad Checkpost). Implied speed within legal thresholds (avg 78.4 km/h)."),
+                ("GOV_INTEL_FETCHED", "eGujCop criminal record match verified: 2 previous vehicle theft priors linked to target.")
+            ]
+            for title, note in sample_entries:
+                tl = CaseTimelineEntry(
+                    case_id=sample_case.id,
+                    entry_type="NOTE",
+                    title=title,
+                    content=note,
+                    created_by="Inspector Vikram Patel"
+                )
+                db.add(tl)
 
         # Create Audit Log of Database Ingestion
         audit = AuditLog(

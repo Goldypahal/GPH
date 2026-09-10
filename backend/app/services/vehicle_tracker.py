@@ -277,10 +277,54 @@ class VehicleTracker:
             seconds_since_confirmed=round(elapsed_sec, 1),
             predicted_next_camera=predicted_next_camera,
             predicted_next_district=predicted_next_district,
-            predicted_next_lat=predicted_next_lat,
-            predicted_next_lng=predicted_next_lng,
-            eta_to_next_camera_sec=eta_sec,
             trail=trail_points,
             risk_level=watchlist.risk_level if watchlist else None,
             watchlist_reason=watchlist.reason if watchlist else None
         )
+
+    @classmethod
+    def validate_journey_physics(
+        cls,
+        cam1: Any,
+        cam2: Any,
+        time1: datetime,
+        time2: datetime
+    ) -> Dict[str, Any]:
+        """Calculates distance, elapsed time, velocity, and impossible journey flag."""
+        dist = haversine_distance_km(cam1.lat, cam1.lng, cam2.lat, cam2.lng)
+        dt_sec = max(1.0, abs((_as_utc(time2) - _as_utc(time1)).total_seconds()))
+        speed_kmh = round((dist / dt_sec) * 3600.0, 1)
+        max_speed = getattr(settings, "IMPOSSIBLE_SPEED_THRESHOLD_KMH", 180.0)
+        impossible = speed_kmh > max_speed
+        return {
+            "distance_km": dist,
+            "calculated_speed_kmh": speed_kmh,
+            "impossible": impossible,
+            "provenance": "GEODESIC_ESTIMATE"
+        }
+
+    @classmethod
+    def reconstruct_vehicle_route(
+        cls,
+        plate_number: str,
+        db: Optional[Session] = None,
+        time_window_hours: float = 24.0
+    ) -> Dict[str, Any]:
+        """Convenience wrapper to reconstruct journey as dictionary."""
+        close_db = False
+        if db is None:
+            from backend.app.core.database import SessionLocal
+            db = SessionLocal()
+            close_db = True
+        try:
+            summary = cls.reconstruct_journey(db, plate_number)
+            if not summary:
+                return {"plate_number": plate_number, "trajectory": []}
+            return summary.dict() if hasattr(summary, "dict") else summary.model_dump()
+        finally:
+            if close_db:
+                db.close()
+
+
+vehicle_tracker = VehicleTracker()
+

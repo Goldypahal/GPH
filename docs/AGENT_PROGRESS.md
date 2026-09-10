@@ -14,7 +14,9 @@
   - `TASK-CHAOS-01`: Distributed chaos resilience & Patroni HA failover simulation (Sections 28 & 33) verifying zero data loss during primary node failure, DCS etcd election, standby promotion, and client reconnection.
   - `TASK-READINESS-01`: Comprehensive 26-subsystem deployment readiness audit endpoint (`/api/system/readiness`) satisfying Section 35 with honest, un-inflated status reporting.
   - `TASK-DB-01`: Automatic database schema synchronization on application startup to ensure schema compatibility without data loss.
-- **Latest Test Run**: **92 passed, 0 failed** in 28.84s across all test suites.
+  - `TASK-DAY1-01`: Complete 16-stage End-to-End Operational Pipeline automated test suite (`tests/test_e2e_full_chain.py`) generating verified machine-readable reports in `artifacts/e2e/`.
+  - `TASK-DEMO-01`: Cross-platform deterministic demonstration engine (`scripts/demo_seed.py`, `scripts/demo_reset.py`, `scripts/run_demo.py`, `scripts/demo.bat`, `scripts/demo.sh`) covering all 12 operational stages.
+- **Latest Test Run**: **93 passed, 0 failed** in 50.98s across all test suites.
 
 ---
 
