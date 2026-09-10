@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from backend.app.core.config import settings
-from backend.app.api import cameras, tracking, watchlist, alerts, evidence, system, analytics, auth, cases
+from backend.app.api import cameras, tracking, watchlist, alerts, evidence, system, analytics, auth, cases, ingest
 from backend.app.core.realtime import alert_broadcaster
 
 app = FastAPI(
@@ -28,6 +28,7 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(cameras.router, prefix=settings.API_V1_STR)
+app.include_router(ingest.router, prefix=settings.API_V1_STR)
 app.include_router(tracking.router, prefix=settings.API_V1_STR)
 app.include_router(watchlist.router, prefix=settings.API_V1_STR)
 app.include_router(alerts.router, prefix=settings.API_V1_STR)

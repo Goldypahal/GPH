@@ -250,6 +250,9 @@ class AIVisionStreamWorker:
         bus = self._bus or _get_event_bus()
         camera_id = payload.get("camera_id", "CAM-DEFAULT")
         timestamp = payload.get("timestamp") or datetime.now(timezone.utc).isoformat()
+        frame_pts = payload.get("frame_pts")
+        pts_delta = payload.get("pts_delta")
+        arrival_timestamp = payload.get("arrival_timestamp") or time.time()
 
         frame_bytes = None
         if "frame_bytes" in payload:
@@ -271,7 +274,12 @@ class AIVisionStreamWorker:
         if frame_bytes:
             try:
                 from backend.app.services.vision_pipeline import vision_pipeline
-                plate_detections = vision_pipeline.detect(frame_bytes, camera_id=camera_id)
+                plate_detections = vision_pipeline.detect(
+                    frame_bytes,
+                    camera_id=camera_id,
+                    frame_pts=frame_pts,
+                    pts_delta=pts_delta
+                )
                 detections = [d.to_dict() for d in plate_detections]
             except Exception as ex:
                 logger.warning(f"AIVisionStreamWorker detection failed on {camera_id}: {ex}")
@@ -284,7 +292,9 @@ class AIVisionStreamWorker:
                 "vehicle_type": payload.get("vehicle_type", "Car"),
                 "detector_confidence": 0.95,
                 "bbox": payload.get("bbox", [100, 100, 300, 300]),
-                "track_id": payload.get("track_id", 1)
+                "track_id": payload.get("track_id", 1),
+                "frame_pts": frame_pts,
+                "pts_delta": pts_delta
             }]
 
         with self._lock:
@@ -299,7 +309,10 @@ class AIVisionStreamWorker:
                 "bbox": det.get("bbox"),
                 "detector_confidence": det.get("detector_confidence", 0.9),
                 "vehicle_type": det.get("vehicle_type", "Car"),
-                "timestamp": timestamp
+                "timestamp": timestamp,
+                "frame_pts": det.get("frame_pts", frame_pts),
+                "pts_delta": det.get("pts_delta", pts_delta),
+                "arrival_timestamp": arrival_timestamp
             }
             bus.publish(bus.TOPIC_VEHICLE_DETECTIONS, veh_event, partition_key=camera_id)
 
@@ -315,6 +328,9 @@ class AIVisionStreamWorker:
                 "bbox": det.get("bbox"),
                 "speed_kmh": payload.get("speed_kmh", 55.0),
                 "timestamp": timestamp,
+                "frame_pts": det.get("frame_pts", frame_pts),
+                "pts_delta": det.get("pts_delta", pts_delta),
+                "arrival_timestamp": arrival_timestamp,
                 "evidence_hash": payload.get("evidence_hash"),
                 "evidence_uri": payload.get("evidence_uri")
             }
@@ -346,13 +362,19 @@ class TrackingStreamWorker:
         track_id = payload.get("track_id", 1)
         plate_text = payload.get("plate_text", "")
         timestamp = payload.get("timestamp") or datetime.now(timezone.utc).isoformat()
+        frame_pts = payload.get("frame_pts")
+        pts_delta = payload.get("pts_delta")
+        arrival_timestamp = payload.get("arrival_timestamp")
 
         # 1. Publish tracking event
         tracking_event = {
             "camera_id": camera_id,
             "track_id": track_id,
             "plate_text": plate_text,
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "frame_pts": frame_pts,
+            "pts_delta": pts_delta,
+            "arrival_timestamp": arrival_timestamp
         }
         bus.publish(bus.TOPIC_TRACKING_EVENTS, tracking_event, partition_key=f"{camera_id}-{track_id}")
 
@@ -367,6 +389,9 @@ class TrackingStreamWorker:
             "vehicle_color": payload.get("vehicle_color", "Unknown"),
             "speed_kmh": payload.get("speed_kmh", 60.0),
             "timestamp": timestamp,
+            "frame_pts": frame_pts,
+            "pts_delta": pts_delta,
+            "arrival_timestamp": arrival_timestamp,
             "evidence_hash": payload.get("evidence_hash"),
             "evidence_uri": payload.get("evidence_uri")
         }

@@ -765,3 +765,19 @@ def get_statewide_topology():
     }
 
 
+@router.get("/sentinel-readiness")
+def get_sentinel_deployment_readiness():
+    """
+    Section 39.18: Pre-flight readiness check for Sentinel Camera Grid integration.
+    Validates TCP transport, authoritative PTS, VFR tolerance, codec support,
+    reconnection backoff, and load pacing.
+    """
+    from backend.app.services.sentinel_stream import sentinel_stream_manager
+    db = SessionLocal()
+    try:
+        cam_count = db.query(Camera).count()
+        return sentinel_stream_manager.get_readiness_report(db_camera_count=cam_count)
+    finally:
+        db.close()
+
+

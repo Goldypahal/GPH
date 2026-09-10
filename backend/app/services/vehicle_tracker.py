@@ -118,6 +118,11 @@ class VehicleTracker:
                         link_status = "IMPOSSIBLE_SPEED"
                     elif implied_speed > settings.SUSPICIOUS_SPEED_THRESHOLD_KMH:
                         link_status = "LOW_CONFIDENCE_LINK"
+                elif time_diff < 0:
+                    # Scene loop discontinuity or backward PTS jump
+                    link_status = "SCENE_DISCONTINUITY_RESET"
+                    implied_speed = None
+                    delta_mins = 0.0
 
             # Match method classification
             match_method = "PLATE_EXACT"

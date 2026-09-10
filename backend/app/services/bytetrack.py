@@ -1,10 +1,4 @@
-"""
-ByteTrack Multi-Object Tracking (MOT) Implementation.
-Tracks vehicles across consecutive video frames within camera FOVs using
-two-stage IoU association and Kalman filter velocity estimation.
-Pure Python implementation with zero mandatory C++ dependencies.
-"""
-
+import math
 from enum import Enum
 from typing import List, Tuple, Dict, Any, Optional
 import numpy as np
@@ -35,7 +29,7 @@ def calculate_iou(boxA: list[float], boxB: list[float]) -> float:
     return inter_area / union_area
 
 class STrack:
-    """Single Object Track state."""
+    """Single Object Track state with authoritative PTS kinematics."""
     _count = 0
 
     def __init__(self, bbox: list[float], score: float, class_name: str = "Car"):
@@ -48,29 +42,39 @@ class STrack:
         self.frame_id = 0
         self.tracklet_len = 0
         self.time_since_update = 0
+        self.pts: Optional[float] = None
+        self.pts_delta: float = 0.04
+        self.speed_px_per_sec: float = 0.0
 
-        # Simple Kalman-like velocity vector (dx, dy)
+        # PTS-normalized velocity vector (px/sec)
         self.velocity = [0.0, 0.0]
 
-    def update(self, new_track: "STrack", frame_id: int):
+    def update(self, new_track: "STrack", frame_id: int, pts: Optional[float] = None, pts_delta: Optional[float] = None):
         self.frame_id = frame_id
         self.tracklet_len += 1
+        self.pts = pts
+        dt = pts_delta if (pts_delta and pts_delta > 0) else 0.04
+        self.pts_delta = dt
         
-        # Estimate velocity from center displacement
+        # Estimate velocity using authoritative PTS delta, NOT arrival time
         old_cx = (self.bbox[0] + self.bbox[2]) / 2.0
         old_cy = (self.bbox[1] + self.bbox[3]) / 2.0
         new_cx = (new_track.bbox[0] + new_track.bbox[2]) / 2.0
         new_cy = (new_track.bbox[1] + new_track.bbox[3]) / 2.0
-        self.velocity = [new_cx - old_cx, new_cy - old_cy]
+
+        # Velocity in pixels per second: displacement / actual_pts_delta
+        self.velocity = [(new_cx - old_cx) / dt, (new_cy - old_cy) / dt]
+        self.speed_px_per_sec = math.hypot(self.velocity[0], self.velocity[1])
 
         self.bbox = new_track.bbox
         self.score = new_track.score
         self.state = TrackState.TRACKED
         self.time_since_update = 0
 
-    def predict(self):
-        """Linearly projects bounding box based on velocity."""
-        dx, dy = self.velocity
+    def predict(self, dt: float = 0.04):
+        """Linearly projects bounding box based on velocity and PTS delta."""
+        dx = self.velocity[0] * dt
+        dy = self.velocity[1] * dt
         self.bbox = [
             self.bbox[0] + dx,
             self.bbox[1] + dy,
@@ -102,21 +106,46 @@ class ByteTracker:
         self.lost_stracks: List[STrack] = []
         self.removed_stracks: List[STrack] = []
         self.frame_id = 0
+        self.last_pts: Optional[float] = None
 
-    def update(self, detections: List[Tuple[list[float], float, str]]) -> List[STrack]:
+    def reset(self):
+        """Resets all tracking states for this camera upon scene discontinuity / loop."""
+        self.tracked_stracks.clear()
+        self.lost_stracks.clear()
+        self.removed_stracks.clear()
+        self.last_pts = None
+
+    def update(
+        self,
+        detections: List[Tuple[list[float], float, str]],
+        pts: Optional[float] = None,
+        pts_delta: Optional[float] = None
+    ) -> List[STrack]:
         """
         Input: list of (bbox, score, class_name)
         Returns active tracked STracks for the current frame.
+        Uses authoritative PTS delta for kinematic prediction and displacement.
         """
+        # Section 39.9: Scene loop boundary or severe temporal gap triggers clean state reset
+        if pts is not None and self.last_pts is not None and pts < self.last_pts:
+            self.reset()
+        elif pts_delta is not None and pts_delta > 5.0:
+            self.reset()
+
+        dt = pts_delta if (pts_delta and pts_delta > 0) else (
+            max(0.001, pts - self.last_pts) if (pts is not None and self.last_pts is not None) else 0.04
+        )
+        self.last_pts = pts
+
         self.frame_id += 1
         activated_stracks: List[STrack] = []
         refind_stracks: List[STrack] = []
 
-        # Predict current locations of existing tracks
+        # Predict current locations of existing tracks using actual PTS delta
         for strack in self.tracked_stracks:
-            strack.predict()
+            strack.predict(dt)
         for strack in self.lost_stracks:
-            strack.predict()
+            strack.predict(dt)
 
         # Partition detections into high and low confidence pools
         high_dets: List[STrack] = []
@@ -140,7 +169,7 @@ class ByteTracker:
         for t_idx, d_idx in matched_tracks_1:
             track = tracked_pool[t_idx]
             det = high_dets[d_idx]
-            track.update(det, self.frame_id)
+            track.update(det, self.frame_id, pts, dt)
             activated_stracks.append(track)
 
         # Pool 2: Match low-confidence detections with unmatched tracks
@@ -155,7 +184,7 @@ class ByteTracker:
         for t_idx, d_idx in matched_tracks_2:
             track = remain_tracks[t_idx]
             det = low_dets[d_idx]
-            track.update(det, self.frame_id)
+            track.update(det, self.frame_id, pts, dt)
             activated_stracks.append(track)
 
         for t_idx in unmatched_tracks_2:
@@ -169,6 +198,8 @@ class ByteTracker:
             det.state = TrackState.TRACKED
             det.frame_id = self.frame_id
             det.tracklet_len = 1
+            det.pts = pts
+            det.pts_delta = dt
             activated_stracks.append(det)
 
         # Clean up lost tracks exceeding max age
@@ -219,6 +250,12 @@ class TrackerPool:
         if camera_id not in cls._trackers:
             cls._trackers[camera_id] = ByteTracker()
         return cls._trackers[camera_id]
+
+    @classmethod
+    def reset_camera(cls, camera_id: str):
+        """Resets tracker for a single camera (e.g. on scene discontinuity)."""
+        if camera_id in cls._trackers:
+            cls._trackers[camera_id].reset()
 
     @classmethod
     def reset(cls):

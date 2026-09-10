@@ -29,6 +29,8 @@ class PlateDetection:
     track_id: int = 0                              # Persistent ByteTrack ID
     source: str = "real"
     fused_votes: int = 1
+    frame_pts: Optional[float] = None              # Authoritative PTS in seconds
+    pts_delta: Optional[float] = None              # Authoritative PTS delta in seconds
     
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -172,7 +174,13 @@ class VisionPipeline:
             }
         }
 
-    def detect(self, contents: bytes, camera_id: str = "CAM-01") -> list[PlateDetection]:
+    def detect(
+        self,
+        contents: bytes,
+        camera_id: str = "CAM-01",
+        frame_pts: Optional[float] = None,
+        pts_delta: Optional[float] = None
+    ) -> list[PlateDetection]:
         if self.mode == "simulation":
             return []
 
@@ -221,7 +229,7 @@ class VisionPipeline:
         # Stage 2: Multi-Object Video Tracking (ByteTrack)
         # =====================================================================
         tracker = TrackerPool.get_tracker(camera_id)
-        active_tracks = tracker.update(raw_vehicle_candidates)
+        active_tracks = tracker.update(raw_vehicle_candidates, pts=frame_pts, pts_delta=pts_delta)
 
         # =====================================================================
         # Stage 3, 4, 5, 6: Dedicated Plate Detect + Deskew + OCR + Temporal Fusion
@@ -277,7 +285,9 @@ class VisionPipeline:
                 vehicle_type=track.class_name,
                 track_id=track.track_id,
                 source=f"two_stage+bytetrack+{plate_res.detection_method.lower()}+fusion",
-                fused_votes=votes
+                fused_votes=votes,
+                frame_pts=frame_pts,
+                pts_delta=pts_delta
             ))
 
         # Update latency metrics

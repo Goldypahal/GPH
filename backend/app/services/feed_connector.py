@@ -38,37 +38,21 @@ class FeedConnector:
         buf = io.BytesIO(); img.save(buf, format="JPEG", quality=80); return buf.getvalue()
 
     @classmethod
-    def _rtsp_generator(cls, url: str) -> Generator[bytes, None, None]:
-        try:
-            import cv2  # type: ignore
-        except ImportError as exc:
-            raise RuntimeError("opencv-python-headless is required for RTSP ingestion") from exc
-        cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
-        try:
-            while True:
-                ok, frame = cap.read()
-                if not ok:
-                    cap.release()
-                    time.sleep(1)
-                    cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
-                    continue
-                ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-                if ok:
-                    yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + encoded.tobytes() + b"\r\n"
-        finally:
-            cap.release()
+    def _rtsp_generator(cls, camera_id: str, url: str) -> Generator[bytes, None, None]:
+        from backend.app.services.sentinel_stream import sentinel_stream_manager
+        for frame_meta in sentinel_stream_manager.stream_frames_with_pts(camera_id, url):
+            yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame_meta.frame_bytes + b"\r\n"
 
     @classmethod
     def get_stream_generator(cls, camera_id: str, camera_name: str, district: str, stream_url: str | None = None) -> Generator[bytes, None, None]:
         mode = os.getenv("GIVIN_STREAM_MODE", "real").lower()
         if mode != "simulation" and stream_url and stream_url.startswith(("rtsp://", "rtsps://", "http://", "https://")):
-            yield from cls._rtsp_generator(stream_url)
+            yield from cls._rtsp_generator(camera_id, stream_url)
             return
         if mode != "simulation":
             raise RuntimeError("No supported camera stream URL configured; use GIVIN_STREAM_MODE=simulation only for demo feeds")
         frame_idx = 0
         while True:
-            yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + cls.generate_live_frame(camera_id,camera_name,district,frame_idx) + b"\r\n"
+            yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + cls.generate_live_frame(camera_id, camera_name, district, frame_idx) + b"\r\n"
             frame_idx += 1
             time.sleep(0.08)

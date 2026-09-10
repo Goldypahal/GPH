@@ -1,4 +1,4 @@
-﻿# Low-Level Design (LLD) Document
+# Low-Level Design (LLD) Document
 ## Gujarat Integrated Video Intelligence Network (GIVIN)
 **Document Classification:** Confidential / Law Enforcement Technical Specification  
 **Version:** 1.2  
@@ -212,3 +212,62 @@ Policy evaluated across 4 orthogonal dimensions:
 2. Department Isolation: `HOME_POLICE` has statewide supervision; other departments restricted to their own cameras/sightings unless an active federation request is approved.
 3. District Fencing: Officers restricted to their assigned jurisdiction (e.g. `Ahmedabad`, `Surat`) unless holding `Statewide` clearance.
 4. Role Permissions: 5-tier role hierarchy (`SUPER_ADMIN`, `DISTRICT_SP`, `POLICE_INSPECTOR`, `OPERATOR`, `AUDITOR`).
+
+---
+
+## 9. Sentinel Camera Grid Integration Architecture (Contract Section 39)
+
+### 9.1 Camera Catalogue Contract (`GET /api/ingest`)
+- Upstream Discovery: Discovers cameras dynamically from the upstream Sentinel Gateway or persistent GIVIN registry.
+- Zero Hard-coding: Never fabricates camera entries; returns structured error if catalogue is unreachable.
+- Standardized Metadata: Each camera record normalizes `camera_id`, `name`, `location`, `district`, `live_status`, `codec`, `resolution`, `declared_fps`, `bitrate_kbps`, `rtsp_url`, and `stream_properties` (`forced_transport: TCP`, `supports_pts: true`, `variable_fps_tolerant: true`).
+- Automatic Lifecycle Sync: Discovered cameras automatically register into the persistent GIVIN database.
+
+### 9.2 Forced TCP Transport
+- OpenCV FFMPEG transport strictly forced via `OPENCV_FFMPEG_CAPTURE_OPTIONS=rtsp_transport;tcp`.
+- Silent UDP fallbacks strictly prohibited to prevent packet loss, frame dropping, and macroblocking on Gujarat police WAN.
+
+### 9.3 Authoritative PTS Timing Engine
+- Media Clock: Presentation Timestamp (PTS) from the container/codec stream serves as the single source of truth for media time.
+- Field Propagation: Downstream tracking and kinematics receive `SentinelFrameMeta` carrying `frame_pts`, `pts_delta`, `arrival_timestamp`, and `camera_id`.
+- Velocity Calculation: Target displacement is strictly normalized by `pts_delta` (`displacement / pts_delta`), completely decoupling kinematics from network arrival jitter.
+- Prohibition of CAP_PROP_FPS: Hardware FPS declarations are never used to synthesize inter-frame time deltas.
+
+### 9.4 Variable Frame Rate (VFR) & GOP Burst Resilience
+- Variable inter-frame gaps (10ms to 500ms) handled smoothly without frame drops or pipeline stalls.
+- GOP Join Bursts: Rapid delivery of buffered keyframes upon RTSP connection (`arrival_interval < 0.35 * pts_delta` within first 2.5s) tagged as `is_burst_frame=True`. Kinematics maintain correct velocities without triggering false 800+ km/h alerts.
+- Recoverable Decoder Warnings: Non-fatal join warnings (h264 sps/pps sync, decode_slice_header errors) logged to telemetry without tearing down capture instances.
+
+### 9.5 Exponential Backoff Reconnection Engine
+- Jittered exponential backoff: Initial retry 2.0s, doubling on consecutive disconnects up to a ceiling of 30.0s.
+- Automatic Reset: Backoff delay resets to 2.0s immediately upon successful stream re-acquisition and frame delivery.
+- Observability: Reconnect attempts, failures, and disconnect timestamps tracked in `CameraStreamTelemetry`.
+
+### 9.6 Heterogeneous Codec & Resolution Handling
+- Codec Support: Dual-stack support for H.264 (AVC) and H.265 (HEVC).
+- Explicit Codec Guard: Unsupported formats (e.g. VP9, MPEG-2) transition stream state to `UNSUPPORTED_CODEC` without crashing the gateway.
+- Resolution Invariance: Native sensor resolutions (e.g., 4K, 1080p, 720p) preserved in metadata while frames scale uniformly to YOLOv8 inference resolution (640x640) with coordinate rescaling factors.
+
+### 9.7 Scene Loop Discontinuity Detection & Recovery
+- Cut Detection: Sudden backward jumps in PTS (`pts < last_pts`) or severe temporal gaps (> 5.0s) identified as scene cuts or video loop resets.
+- Tracker Reset: ByteTracker invalidates tracked and lost pools via `self.reset()`, guaranteeing tracks do not span across loop boundaries.
+- Journey Reconstruction: Negative time differences (`time_diff < 0`) in trajectory analysis flagged as `SCENE_DISCONTINUITY_RESET` rather than false impossible-speed violations.
+
+### 9.8 Consume-Only Gateway Contract & Load Pacing
+- Consume-Only: GIVIN operates strictly as a consumer; exposes no endpoints or methods for stream publication or gateway camera mutation.
+- Load Pacing: Stream concurrency bounded by `MAX_ACTIVE_CAMERA_STREAMS` (default 32) and `MAX_CONNECT_CONCURRENCY` (default 4). Exceeding requests rejected with `LOAD_PACING_EXCEEDED`.
+
+### 9.9 Stream Health Truth State Machine
+Maintains 8 distinct, un-collapsed states for full operational transparency:
+1. `CATALOGUE_LIVE`: Camera entry discovered and validated in catalogue.
+2. `TCP_REACHABLE`: TCP socket handshake established on port 554/8554.
+3. `RTSP_CONNECTED`: RTSP DESCRIBE/SETUP completed.
+4. `RTSP_AUTHENTICATED`: Credentials accepted by camera endpoint.
+5. `STREAM_ACTIVE`: Transport channel open and waiting for video frames.
+6. `FRAME_RECEIVING`: Demuxer actively receiving raw video packets.
+7. `FRAME_FRESH`: Decoded frames arriving within freshness threshold (< 5.0s).
+8. `AI_PROCESSING`: Ingested frame successfully processed by YOLOv8 ANPR inference.
+
+### 9.10 Sentinel Deployment Readiness Endpoint
+`GET /api/system/sentinel-readiness` provides pre-flight readiness verification across 9 automated checks:
+- `camera_catalogue`, `rtsp_tcp`, `pts_timing`, `reconnect`, `h264`, `h265`, `mixed_resolution`, `scene_discontinuity`, `load_pacing`.
