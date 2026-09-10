@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from backend.app.core.config import settings
 from backend.app.core.database import get_db
 from backend.app.models.orm import Alert, VehicleSighting, Camera, Watchlist, AuditLog
 from backend.app.models.schema import AlertOut, AlertAction
@@ -98,6 +99,12 @@ def simulate_live_detection_alert(
     Simulates a live high-priority detection event on a camera feed, triggering
     instant ANPR OCR, watchlist matching, and WebSocket / audio alarm dispatch.
     """
+    if settings.ENVIRONMENT == "production":
+        raise HTTPException(
+            status_code=403,
+            detail="Simulation endpoints are disabled in production environment"
+        )
+
     cam = None
     if camera_code:
         cam = db.query(Camera).filter(Camera.logical_camera_id == camera_code).first()

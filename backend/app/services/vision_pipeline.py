@@ -255,10 +255,16 @@ class VisionPipeline:
 
             # Stage 5: OCR Character Recognition
             raw_ocr, ocr_conf = self._ocr_plate(preprocessed_crop)
+            is_simulated_ocr = False
             if not raw_ocr:
-                # If OCR model is offline or uninstalled, fallback to designated test plate
-                raw_ocr = "GJ01AB1234"
-                ocr_conf = 0.94
+                if self.mode == "simulation" or settings.ENVIRONMENT != "production":
+                    # Non-production sandbox fallback for environments without PaddleOCR weights
+                    raw_ocr = "GJ01AB1234"
+                    ocr_conf = 0.94
+                    is_simulated_ocr = True
+                else:
+                    # Strict production truth: never fabricate plate readings from empty OCR crops
+                    continue
 
             # Validate format with ANPREngine
             corrected, fmt_conf, is_valid = ANPREngine.validate_and_correct(raw_ocr)
@@ -276,6 +282,8 @@ class VisionPipeline:
             px1, py1, px2, py2 = plate_res.bbox
             global_plate_bbox = [x1 + px1, y1 + py1, x1 + px2, y1 + py2]
 
+            source_label = "SIMULATED_TEST_OCR" if is_simulated_ocr else f"two_stage+bytetrack+{plate_res.detection_method.lower()}+fusion"
+
             detections.append(PlateDetection(
                 plate_text=fused_plate,
                 ocr_confidence=fused_conf,
@@ -284,7 +292,7 @@ class VisionPipeline:
                 detector_confidence=track.score,
                 vehicle_type=track.class_name,
                 track_id=track.track_id,
-                source=f"two_stage+bytetrack+{plate_res.detection_method.lower()}+fusion",
+                source=source_label,
                 fused_votes=votes,
                 frame_pts=frame_pts,
                 pts_delta=pts_delta

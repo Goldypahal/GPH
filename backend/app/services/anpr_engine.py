@@ -115,7 +115,15 @@ class ANPREngine:
         High-level ANPR processing helper.
         Returns: (plate_text, ocr_confidence, vehicle_type, vehicle_color)
         """
-        plate_candidate = synthetic_plate or "GJ01AB1234"
+        from backend.app.core.config import settings
+        if synthetic_plate:
+            corrected, conf, _ = self.validate_and_correct(synthetic_plate)
+            return corrected, conf, "SUV", "Gold"
+
+        if settings.ENVIRONMENT == "production":
+            return "", 0.0, "Unknown", "Unknown"
+
+        plate_candidate = "GJ01AB1234"
         corrected, conf, _ = self.validate_and_correct(plate_candidate)
         return corrected, conf, "SUV", "Gold"
 
