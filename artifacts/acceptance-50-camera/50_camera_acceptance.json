@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-11T02:46:33.553847+00:00",
+  "timestamp": "2026-09-11T07:10:07.443967+00:00",
   "evaluation_protocol": "50_CAMERA_HETEROGENEOUS_ACCEPTANCE_TEST",
   "provenance_labels": {
     "camera_load": "SIMULATED CAMERA LOAD",
@@ -25,7 +25,7 @@
       "total_cameras": 50,
       "lifecycle_passed": 50,
       "success_rate_pct": 100.0,
-      "average_validation_time_ms": 10.43,
+      "average_validation_time_ms": 12.36,
       "codecs_deployed": {
         "H264": 25,
         "H265": 25
@@ -49,7 +49,7 @@
     "3_watchlist_and_alerting": {
       "status": "PASSED",
       "target_plate": "GJ01TC5050",
-      "alerts_created": 52,
+      "alerts_created": 63,
       "deduplication_confirmed": true,
       "alert_risk_level": "CRITICAL"
     },
@@ -62,8 +62,8 @@
     },
     "5_case_and_worm_evidence": {
       "status": "PASSED",
-      "case_id": "674a66dc-274b-4efb-8aec-b47a3a8d83d6",
-      "evidence_id": "EVID-90D2A93C2912",
+      "case_id": "6f287ca9-1c41-4991-85af-171f690517f1",
+      "evidence_id": "EVID-B07C29ABF3F2",
       "sha256_seal": "ec39fc883fc73260b58012b0b5968e590186296d8b4afae71a9ef84054b1ca95",
       "integrity_verified": true,
       "deletion_prohibited_403": true,
@@ -77,7 +77,7 @@
     "7_telemetry_and_sla": {
       "status": "PASSED",
       "sla_threshold_p95_ms": 200.0,
-      "observed_p95_ms": 12.98,
+      "observed_p95_ms": 17.54,
       "zero_evidence_failures": true
     }
   },
@@ -85,11 +85,11 @@
     "events_attempted": 50,
     "events_accepted": 50,
     "events_failed": 0,
-    "processing_latency_mean_ms": 5.21,
-    "processing_latency_p50_ms": 2.06,
-    "processing_latency_p95_ms": 12.98,
-    "watchlist_latency_ms": 17.67,
-    "alert_latency_ms": 18.78,
+    "processing_latency_mean_ms": 7.64,
+    "processing_latency_p50_ms": 2.85,
+    "processing_latency_p95_ms": 17.54,
+    "watchlist_latency_ms": 24.18,
+    "alert_latency_ms": 27.54,
     "reconnect_count": 2,
     "decode_failures": 0,
     "pts_gaps": 2,
@@ -98,5 +98,5 @@
     "evidence_integrity_failures": 0
   },
   "overall_status": "PASSED",
-  "total_runtime_seconds": 1.08
+  "total_runtime_seconds": 1.43
 }
