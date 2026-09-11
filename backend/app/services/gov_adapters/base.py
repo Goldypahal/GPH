@@ -38,6 +38,14 @@ class IntegrationMode(str, Enum):
     AUTHORIZED_PRODUCTION = "AUTHORIZED_PRODUCTION"
 
 
+class ReadinessState(str, Enum):
+    SOFTWARE_READY = "SOFTWARE_READY"
+    SANDBOX_READY = "SANDBOX_READY"
+    PRODUCTION_CREDENTIALS_REQUIRED = "PRODUCTION_CREDENTIALS_REQUIRED"
+    NETWORK_ACCESS_REQUIRED = "NETWORK_ACCESS_REQUIRED"
+    GOVERNMENT_AUTHORIZATION_REQUIRED = "GOVERNMENT_AUTHORIZATION_REQUIRED"
+
+
 class BaseGovAdapter(ABC):
     """
     Standard interface contract for Government Database Integrations.
@@ -202,4 +210,50 @@ class BaseGovAdapter(ABC):
                 else "Standard HTTPS Gateway"
             )
         }
+
+    def get_readiness_state(self) -> Dict[str, Any]:
+        """Calculates truthful government integration readiness without fabricating credentials."""
+        if self.mode == IntegrationMode.MOCK:
+            return {
+                "service": self.service_name,
+                "mode": self.mode.value,
+                "readiness": ReadinessState.SOFTWARE_READY.value,
+                "description": "Software adapter implemented and verified via deterministic unit and contract tests.",
+                "action_required": "None for local/demo testing; configure GSWAN mTLS for production."
+            }
+        elif self.mode == IntegrationMode.SANDBOX:
+            return {
+                "service": self.service_name,
+                "mode": self.mode.value,
+                "readiness": ReadinessState.SANDBOX_READY.value,
+                "description": "Connected to staging/sandbox gateway with synthetic records.",
+                "action_required": "Staging credentials active; external acceptance validation ongoing."
+            }
+        else:  # AUTHORIZED_PRODUCTION
+            mtls_cert = os.getenv("GOV_MTLS_CERT_PATH")
+            mtls_key = os.getenv("GOV_MTLS_KEY_PATH")
+            vpn_active = os.getenv("GSWAN_VPN_ACTIVE", "false").lower() in ("true", "1", "yes")
+            has_certs = bool(mtls_cert and os.path.exists(mtls_cert) and mtls_key and os.path.exists(mtls_key))
+
+            if not has_certs:
+                state = ReadinessState.PRODUCTION_CREDENTIALS_REQUIRED
+                desc = "Production mTLS client certificate and private key are missing."
+                action = "Obtain official NIC/MHA digital certificates and set GOV_MTLS_CERT_PATH and GOV_MTLS_KEY_PATH."
+            elif not vpn_active:
+                state = ReadinessState.NETWORK_ACCESS_REQUIRED
+                desc = "Active State WAN (GSWAN) VPN gateway tunnel is not detected."
+                action = "Establish dedicated GSWAN site-to-site IPsec tunnel and set GSWAN_VPN_ACTIVE=true."
+            else:
+                state = ReadinessState.GOVERNMENT_AUTHORIZATION_REQUIRED
+                desc = "Network and cryptographic prerequisites met; awaiting final departmental clearance."
+                action = "Submit digital security audit certification to MoRTH/MHA for live query provisioning."
+
+            return {
+                "service": self.service_name,
+                "mode": self.mode.value,
+                "readiness": state.value,
+                "description": desc,
+                "action_required": action
+            }
+
 

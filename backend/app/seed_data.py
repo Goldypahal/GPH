@@ -386,7 +386,7 @@ def seed_database():
             db.commit()
 
         # 4. Multi-Camera Journey for GJ01AB1234
-        if db.query(VehicleSighting).filter(VehicleSighting.plate_text == "GJ01AB1234").count() == 0:
+        if db.query(VehicleSighting).filter(VehicleSighting.plate_text == "GJ01AB1234").count() < 5:
             print("=== Seeding Multi-Camera Journey for Designated Test Vehicle (GJ01AB1234) ===")
             # Scenario: Robbery vehicle GJ01AB1234 travelled from Ahmedabad through Gandhinagar, Vadodara, Surat to Valsad border
             now = datetime.now(timezone.utc)

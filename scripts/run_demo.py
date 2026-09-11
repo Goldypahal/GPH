@@ -53,6 +53,7 @@ from backend.app.services.anpr_engine import anpr_engine
 from backend.app.services.vehicle_tracker import vehicle_tracker
 from backend.app.services.evidence_vault import evidence_vault
 from backend.app.services.watchlist_matcher import WatchlistMatcher
+from backend.app.core.security import generate_sha256_hash
 
 
 def print_step(step_num: int, title: str, details: str = ""):
@@ -180,6 +181,8 @@ def run_full_demo():
             synthetic_plate=demo_plate
         )
 
+        raw_crop1 = f"PLATE:{demo_plate}:{cam1.logical_camera_id}:{t_sight1.isoformat()}".encode()
+        hash1 = generate_sha256_hash(raw_crop1)
         sighting1 = VehicleSighting(
             id=f"sight-{run_id}-01",
             camera_id=cam1.id,
@@ -197,7 +200,9 @@ def run_full_demo():
             speed_kmh=58.0,
             direction="Northbound",
             model_version="yolo11n-anpr-v1",
-            processing_provenance="MEASURED_DEMO_STREAM"
+            processing_provenance="MEASURED_DEMO_STREAM",
+            evidence_uri=f"/api/analytics/evidence/{hash1[:16]}.jpg",
+            evidence_hash=hash1
         )
         db.add(sighting1)
         db.commit()
@@ -205,6 +210,8 @@ def run_full_demo():
         # Secondary Sighting
         pts_frame2 = pts_frame1 + 330000.0
         t_sight2 = datetime.now(timezone.utc)
+        raw_crop2 = f"PLATE:{demo_plate}:{cam2.logical_camera_id}:{t_sight2.isoformat()}".encode()
+        hash2 = generate_sha256_hash(raw_crop2)
         sighting2 = VehicleSighting(
             id=f"sight-{run_id}-02",
             camera_id=cam2.id,
@@ -222,7 +229,9 @@ def run_full_demo():
             speed_kmh=64.0,
             direction="Eastbound",
             model_version="yolo11n-anpr-v1",
-            processing_provenance="MEASURED_DEMO_STREAM"
+            processing_provenance="MEASURED_DEMO_STREAM",
+            evidence_uri=f"/api/analytics/evidence/{hash2[:16]}.jpg",
+            evidence_hash=hash2
         )
         db.add(sighting2)
         db.commit()

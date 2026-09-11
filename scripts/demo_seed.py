@@ -126,7 +126,13 @@ def seed_demo_environment():
             print(f"[+] Watchlist Target Re-activated: {DEMO_PLATE}")
 
 
-        # 5. Record Audit Trail for Seeding
+        # 5. Ensure 5-camera corridor journey for DEMO_PLATE exists
+        if db.query(VehicleSighting).filter(VehicleSighting.plate_text == DEMO_PLATE).count() < 5:
+            from backend.app.seed_data import seed_database
+            seed_database()
+            print(f"[+] Multi-Camera Corridor Journey Ensured for {DEMO_PLATE}")
+
+        # 6. Record Audit Trail for Seeding
         import hashlib
         sig = hashlib.sha256(f"SYSTEM_DEMO_SEEDER:DEMO_SEED_COMPLETED:STATEWIDE_WATCHLIST:{datetime.now(timezone.utc).isoformat()}".encode()).hexdigest()
         audit = AuditLog(

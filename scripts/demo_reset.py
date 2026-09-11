@@ -41,8 +41,8 @@ def reset_demo_data():
 
         # 3. Purge demo sightings
         sightings = db.query(VehicleSighting).filter(
-            (VehicleSighting.plate_text == DEMO_PLATE) | 
-            (VehicleSighting.normalized_plate == DEMO_PLATE)
+            (VehicleSighting.id.like("sight-%")) | 
+            (VehicleSighting.processing_provenance == "MEASURED_DEMO_STREAM")
         ).all()
         s_count = len(sightings)
         for s in sightings:
