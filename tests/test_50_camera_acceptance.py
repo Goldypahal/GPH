@@ -206,6 +206,8 @@ def test_50_camera_watchlist_matching_and_instant_alert_dispatch(fleet_50_camera
         )
         db.add(wl_entry)
         db.commit()
+    from backend.app.services.watchlist_matcher import WatchlistMatcher
+    WatchlistMatcher.invalidate_cache()
 
     # 2. Ingest sighting for target plate on Ahmedabad SG Highway camera
     target_cam = fleet_50_cameras[0]  # CAM-AHM-01
