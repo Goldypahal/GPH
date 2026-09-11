@@ -118,7 +118,7 @@ class BaseGovAdapter(ABC):
             pass
 
         # 2. Direct Source Query with Retry
-        t0 = time.time()
+        t0 = time.perf_counter()
         raw_result = None
         last_error = None
 
@@ -157,11 +157,12 @@ class BaseGovAdapter(ABC):
         sig = hashlib.sha256(f"{settings.SECRET_KEY}:{canonical}".encode()).hexdigest()
         raw_result["source_signature_hash"] = sig
 
-        # 4. Save to Redis Cache
-        try:
-            redis_state.set(cache_key, json.dumps(raw_result), ttl_seconds=self.CACHE_TTL_SEC)
-        except Exception:
-            pass
+        # 4. Save to Redis Cache (only cache successful lookups)
+        if raw_result.get("status") != "LOOKUP_FAILED":
+            try:
+                redis_state.set(cache_key, json.dumps(raw_result), ttl_seconds=self.CACHE_TTL_SEC)
+            except Exception:
+                pass
 
         return raw_result
 

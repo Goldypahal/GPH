@@ -1,8 +1,8 @@
 {
   "suite_name": "GIVIN Day 1 End-to-End Operational Pipeline Validation",
-  "run_id": "d760adb5",
-  "timestamp": "2026-09-10T12:04:46.345325+00:00",
-  "total_duration_ms": 166.05,
+  "run_id": "07152c10",
+  "timestamp": "2026-09-11T02:10:52.249833+00:00",
+  "total_duration_ms": 159.87,
   "stages_total": 16,
   "stages_passed": 16,
   "pipeline_verdict": "PASSED_100_PERCENT",
@@ -36,20 +36,20 @@
     },
     "5_anpr_ocr_normalization": {
       "status": "PASSED",
-      "raw_text": "GJ01ST4886",
-      "normalized_plate": "GJ01ST4886",
+      "raw_text": "GJ01ST1652",
+      "normalized_plate": "GJ01ST1652",
       "ocr_confidence": 0.96
     },
     "6_bytetrack_tracking": {
       "status": "PASSED",
-      "track_id": "trk-d760adb5-001",
+      "track_id": "trk-07152c10-001",
       "velocity_calculation": "DISPLACEMENT_OVER_PTS_DELTA"
     },
     "7_canonical_sighting": {
       "status": "PASSED",
-      "sighting_id": "sight-d760adb5-01",
+      "sighting_id": "sight-07152c10-01",
       "frame_pts": 15000.0,
-      "track_id": "trk-d760adb5-001"
+      "track_id": "trk-07152c10-001"
     },
     "8_event_bus_dispatch": {
       "status": "PASSED",
@@ -60,20 +60,20 @@
     },
     "9_watchlist_matching": {
       "status": "PASSED",
-      "watchlist_id": "774fd62b-f048-48ee-a1d3-403d5913f11f",
+      "watchlist_id": "40c4ae20-3d9f-4aec-9289-6cd193f23c74",
       "risk_level": "CRITICAL",
       "reason": "Wanted for Inter-District Organized Crime Investigation"
     },
     "10_alert_generation": {
       "status": "PASSED",
-      "alert_id": "alt-d760adb5-01",
-      "alert_uid": "ALT-E2E-D760ADB5-01",
+      "alert_id": "alt-07152c10-01",
+      "alert_uid": "ALT-E2E-07152C10-01",
       "severity": "CRITICAL"
     },
     "11_websocket_fanout": {
       "status": "PASSED",
       "endpoint": "/ws/alerts",
-      "payload_id": "alt-d760adb5-01",
+      "payload_id": "alt-07152c10-01",
       "dispatch_provenance": "MEASURED_SOCKET_BROADCASTER"
     },
     "12_cross_camera_correlation": {
@@ -89,14 +89,14 @@
     },
     "13_case_management": {
       "status": "PASSED",
-      "case_id": "5d972063-dc80-4731-83a1-17e1dedb0cab",
-      "case_number": "CR-2026-E2E-D760ADB5",
+      "case_id": "aa17eb6a-ef48-4489-9a98-130f2ea5fd7a",
+      "case_number": "CR-2026-E2E-07152C10",
       "case_status": "INVESTIGATING"
     },
     "14_worm_evidence_vault": {
       "status": "PASSED",
-      "evidence_id": "EVID-BC94348D45E7",
-      "sha256": "038c486e6a98c08a4b02d5a42d60790f2275e76390f781bc67ab207220faa1fc",
+      "evidence_id": "EVID-DC0F409B5D94",
+      "sha256": "5388bc3125387e93582cb6cf6981f0fd97f4bd9f49da01902dac51b8adcd1ec7",
       "worm_locked": true
     },
     "15_evidence_integrity_verification": {
@@ -107,8 +107,8 @@
     "16_audit_and_custody_trail": {
       "status": "PASSED",
       "custody_entries": 2,
-      "audit_log_id": "e4322f9a-73d5-4403-9faf-9e08adcc33ea",
-      "signature_hash": "3316008daf5ab0709474b20f9e470f2f8671d4862c3ede0f0c4f104937230094"
+      "audit_log_id": "6cba6eb9-c9af-42d8-ae78-603a5acbe9b0",
+      "signature_hash": "34c17961e7b3208239b019b6a822b2cd320a6e86da22b9e9a8efe9f0c059aada"
     }
   }
 }

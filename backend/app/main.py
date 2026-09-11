@@ -66,12 +66,21 @@ def serve_index():
     return {"status": "GIVIN API is running. Frontend index.html not yet mounted."}
 
 
+from fastapi import Response, status
+from backend.app.core.database import check_db_health
+
 @app.get("/health")
-def root_health():
+def root_health(response: Response):
+    db_h = check_db_health()
+    is_ready = (db_h.get("status") == "READY")
+    if not is_ready:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return {
-        "status": "healthy",
+        "status": "healthy" if is_ready else "unhealthy",
         "service": settings.PROJECT_NAME,
         "version": settings.PROJECT_VERSION,
+        "database": db_h.get("status"),
         "realtime_alerts": "enabled",
         "docs_url": "/docs"
     }
+

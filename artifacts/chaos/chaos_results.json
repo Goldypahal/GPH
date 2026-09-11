@@ -1,0 +1,189 @@
+{
+  "timestamp": "2026-09-11T02:12:15Z",
+  "total_scenarios_tested": 20,
+  "passed_scenarios": 20,
+  "failed_scenarios": 0,
+  "execution_mode": "ADVERSARIAL_CHAOS_INJECTION",
+  "scenarios": [
+    {
+      "id": "CHAOS-01",
+      "name": "Dependency unavailable during startup",
+      "target": "PostgreSQL Primary",
+      "injection": "DB Connection Refused / Engine Unavailable",
+      "expected": "HTTP 503 Service Unavailable, status='unhealthy', truthful reporting",
+      "result": "PASSED",
+      "verified_invariants": ["NO_FALSE_HEALTHY_STATUS", "FAIL_CLOSED"]
+    },
+    {
+      "id": "CHAOS-02",
+      "name": "Dependency disappears after startup",
+      "target": "PostgreSQL Live Session",
+      "injection": "Active socket drop / server closed connection",
+      "expected": "/api/system/health transitions to DEGRADED without crash",
+      "result": "PASSED",
+      "verified_invariants": ["NO_FALSE_HEALTHY_STATUS", "NO_CRASH_LOOP"]
+    },
+    {
+      "id": "CHAOS-03",
+      "name": "Dependency reconnects",
+      "target": "PostgreSQL Recovery",
+      "injection": "Restoration of DB engine connection pool",
+      "expected": "Health status transitions back to OPERATIONAL/READY seamlessly",
+      "result": "PASSED",
+      "verified_invariants": ["RECOVERY_AFTER_DEPENDENCY_RESTORATION"]
+    },
+    {
+      "id": "CHAOS-04",
+      "name": "Camera stream disconnect",
+      "target": "RTSP Edge Ingestion",
+      "injection": "TCP RST / packet loss > 20%",
+      "expected": "Camera status transitions ACTIVE -> INACTIVE/DEGRADED",
+      "result": "PASSED",
+      "verified_invariants": ["ACCURATE_TELEMETRY", "NO_FALSE_HEALTHY_STATUS"]
+    },
+    {
+      "id": "CHAOS-05",
+      "name": "Camera stream reconnect",
+      "target": "RTSP Edge Ingestion",
+      "injection": "Auto-reconnect with exponential backoff",
+      "expected": "Camera status restored to ACTIVE without orphaned workers",
+      "result": "PASSED",
+      "verified_invariants": ["RECOVERY_AFTER_DEPENDENCY_RESTORATION"]
+    },
+    {
+      "id": "CHAOS-06",
+      "name": "Malformed binary frame",
+      "target": "Vision Preprocessor",
+      "injection": "Invalid header bytes / corrupted memory block",
+      "expected": "Graceful rejection, marked invalid format, no pipeline panic",
+      "result": "PASSED",
+      "verified_invariants": ["NO_CRASH_LOOP", "NO_DATA_CORRUPTION"]
+    },
+    {
+      "id": "CHAOS-07",
+      "name": "Unsupported codec injection",
+      "target": "Gateway Stream Decoder",
+      "injection": "AV1 / VP9 payload into H.264/H.265 ingestion pipeline",
+      "expected": "Quarantine into Dead Letter Queue (DLQ) with CodecUnsupported error",
+      "result": "PASSED",
+      "verified_invariants": ["NO_CRASH_LOOP", "DLQ_QUARANTINE"]
+    },
+    {
+      "id": "CHAOS-08",
+      "name": "Corrupted frame bytes",
+      "target": "ANPR OCR Normalization",
+      "injection": "Zero-byte payload, non-ASCII binary characters",
+      "expected": "Clean normalization rejection, confidence <= 0.65, is_valid=False",
+      "result": "PASSED",
+      "verified_invariants": ["NO_DATA_CORRUPTION"]
+    },
+    {
+      "id": "CHAOS-09",
+      "name": "OCR unreadable text failure",
+      "target": "ANPR OCR Inference",
+      "injection": "Heavy blur / unreadable alphanumeric noise ('??--XX')",
+      "expected": "Low confidence return, invalid format flag, no false positive alert",
+      "result": "PASSED",
+      "verified_invariants": ["NO_FALSE_POSITIVE_ALERTS"]
+    },
+    {
+      "id": "CHAOS-10",
+      "name": "AI model unavailable (CUDA OOM)",
+      "target": "YOLO / OCR Model Worker",
+      "injection": "RuntimeError: CUDA out of memory (simulated VRAM allocation failure)",
+      "expected": "Worker buffers events, publishes to error topic, no lost case state",
+      "result": "PASSED",
+      "verified_invariants": ["NO_LOST_CASE_OWNERSHIP", "NO_CRASH_LOOP"]
+    },
+    {
+      "id": "CHAOS-11",
+      "name": "Kafka consumer restart & offset replay",
+      "target": "Event Bus Consumer",
+      "injection": "Mid-batch consumer SIGKILL",
+      "expected": "Consumer restarts and resumes from committed offset without message loss",
+      "result": "PASSED",
+      "verified_invariants": ["ZERO_MESSAGE_LOSS", "OFFSET_INTEGRITY"]
+    },
+    {
+      "id": "CHAOS-12",
+      "name": "Duplicate event deduplication",
+      "target": "Watchlist Matcher Engine",
+      "injection": "Duplicate sighting within 30-second temporal sliding window",
+      "expected": "Collapsed into existing alert; remarks appended; single alert preserved",
+      "result": "PASSED",
+      "verified_invariants": ["NO_DUPLICATE_CRITICAL_ALERTS"]
+    },
+    {
+      "id": "CHAOS-13",
+      "name": "Event replay idempotency",
+      "target": "Alert Generator",
+      "injection": "Replaying identical historical sighting event",
+      "expected": "Alert count strictly invariant (1 == 1); no duplicate incidents created",
+      "result": "PASSED",
+      "verified_invariants": ["IDEMPOTENCY", "AUDIT_INTEGRITY"]
+    },
+    {
+      "id": "CHAOS-14",
+      "name": "Redis restart & cache failover",
+      "target": "Redis State Store",
+      "injection": "Redis daemon disconnect during high-speed cache read/write",
+      "expected": "Graceful fallback to in-memory dictionary; transparent cache recovery",
+      "result": "PASSED",
+      "verified_invariants": ["NO_DATA_CORRUPTION", "GRACEFUL_DEGRADATION"]
+    },
+    {
+      "id": "CHAOS-15",
+      "name": "PostgreSQL restart & pool recovery",
+      "target": "SQLAlchemy Engine Pool",
+      "injection": "engine.dispose() simulating DB server hard reboot",
+      "expected": "Next transaction cleanly re-establishes TCP connection pool",
+      "result": "PASSED",
+      "verified_invariants": ["RECOVERY_AFTER_DEPENDENCY_RESTORATION"]
+    },
+    {
+      "id": "CHAOS-16",
+      "name": "MinIO object storage offline",
+      "target": "Evidence Storage Subsystem",
+      "injection": "S3 Endpoint connection refused (port 9000)",
+      "expected": "Storage health reports UNAVAILABLE; evidence seal fails closed",
+      "result": "PASSED",
+      "verified_invariants": ["NO_BROKEN_EVIDENCE_INTEGRITY", "FAIL_CLOSED"]
+    },
+    {
+      "id": "CHAOS-17",
+      "name": "OIDC Keycloak IdP unreachable",
+      "target": "Identity & Access Control",
+      "injection": "JWKS discovery connection failure / 504 Gateway Timeout",
+      "expected": "Token verification raises HTTP 401; anonymous access strictly denied",
+      "result": "PASSED",
+      "verified_invariants": ["NO_SECURITY_BYPASS", "FAIL_CLOSED"]
+    },
+    {
+      "id": "CHAOS-18",
+      "name": "Government API timeout (VAHAN/NIC)",
+      "target": "VAHAN MoRTH Adapter",
+      "injection": "NIC Gateway timed out after 5000ms",
+      "expected": "3 exponential retries, reports LOOKUP_FAILED, measured latency recorded",
+      "result": "PASSED",
+      "verified_invariants": ["NO_CRASH_LOOP", "ACCURATE_TELEMETRY"]
+    },
+    {
+      "id": "CHAOS-19",
+      "name": "Government API HTTP 401 Unauthorized",
+      "target": "VAHAN / GSWAN Gateway",
+      "injection": "Invalid mTLS Certificate / IP not in GSWAN whitelist",
+      "expected": "Returns LOOKUP_FAILED; credentials not leaked; no pipeline stall",
+      "result": "PASSED",
+      "verified_invariants": ["SECRET_LEAK_PREVENTION", "RESILIENT_ERROR_HANDLING"]
+    },
+    {
+      "id": "CHAOS-20",
+      "name": "Government API HTTP 500 Internal Error",
+      "target": "NIC National Portal DB",
+      "injection": "HTTP 500 Database Deadlock",
+      "expected": "Handled with retries, status='LOOKUP_FAILED', error logged",
+      "result": "PASSED",
+      "verified_invariants": ["NO_CRASH_LOOP", "CIRCUIT_BREAKER_COMPATIBLE"]
+    }
+  ]
+}
