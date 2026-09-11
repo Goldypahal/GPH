@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from backend.app.core.database import SessionLocal, Base, engine
-from backend.app.models.orm import Camera, Watchlist, User, Department, AuditLog
+from backend.app.models.orm import Camera, Watchlist, User, Department, AuditLog, VehicleSighting
 from backend.app.core.security import hash_password
 
 DEMO_PLATE = "GJ01AB1234"

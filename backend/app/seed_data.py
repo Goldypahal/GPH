@@ -501,6 +501,26 @@ def seed_database():
 
             db.commit()
 
+        # Ensure canonical alert for designated test vehicle GJ01AB1234 exists
+        if db.query(Alert).filter(Alert.plate_text == "GJ01AB1234").count() == 0:
+            last_s = db.query(VehicleSighting).filter(VehicleSighting.plate_text == "GJ01AB1234").order_by(VehicleSighting.timestamp.desc()).first()
+            stolen_wl = db.query(Watchlist).filter(Watchlist.vehicle_number == "GJ01AB1234").first()
+            if last_s and stolen_wl:
+                now_str = datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')
+                desig_alert = Alert(
+                    alert_uid=f"ALT-{now_str}-VLS1",
+                    watchlist_id=stolen_wl.id,
+                    sighting_id=last_s.id,
+                    camera_id=last_s.camera_id,
+                    plate_text="GJ01AB1234",
+                    risk_level="CRITICAL",
+                    status="NEW",
+                    remarks="SUSPECT DETECTED AT BORDER CHECKPOINT! Moving Southbound on NH-48 towards Maharashtra border.",
+                    dispatched_unit="PCR Van 12 (Bhilad Outpost)"
+                )
+                db.add(desig_alert)
+                db.commit()
+
 
         # Create Default RBAC Users
         print("Seeding RBAC Users...")

@@ -71,7 +71,7 @@ def run_full_demo():
     print("=" * 78)
 
     db = SessionLocal()
-    demo_plate = "GJ01AB1234"
+    demo_plate = f"GJ01DM{int(time.time()) % 9000 + 1000}"
     run_id = uuid.uuid4().hex[:8]
 
     try:

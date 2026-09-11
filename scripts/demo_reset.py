@@ -39,16 +39,20 @@ def reset_demo_data():
         db.commit()
         print(f"[+] Purged {a_count} demonstration alerts.")
 
-        # 3. Purge demo sightings
-        sightings = db.query(VehicleSighting).filter(
-            (VehicleSighting.id.like("sight-%")) | 
-            (VehicleSighting.processing_provenance == "MEASURED_DEMO_STREAM")
-        ).all()
-        s_count = len(sightings)
-        for s in sightings:
-            db.delete(s)
-        db.commit()
-        print(f"[+] Purged {s_count} demonstration vehicle sightings.")
+        # 3. Purge demo sightings and any dependent alerts/evidence
+        sighting_ids = [
+            s.id for s in db.query(VehicleSighting.id).filter(
+                (VehicleSighting.id.like("sight-%")) | 
+                (VehicleSighting.processing_provenance == "MEASURED_DEMO_STREAM")
+            ).all()
+        ]
+        s_count = len(sighting_ids)
+        if sighting_ids:
+            db.query(CaseEvidence).filter(CaseEvidence.sighting_id.in_(sighting_ids)).delete(synchronize_session=False)
+            db.query(Alert).filter(Alert.sighting_id.in_(sighting_ids)).delete(synchronize_session=False)
+            db.query(VehicleSighting).filter(VehicleSighting.id.in_(sighting_ids)).delete(synchronize_session=False)
+            db.commit()
+        print(f"[+] Purged {s_count} demonstration vehicle sightings and dependent records.")
 
 
         # 4. Record audit log

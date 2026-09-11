@@ -1,9 +1,9 @@
 # GIVIN — 50-Camera Heterogeneous Acceptance Test Summary
 
-**Date**: 2026-09-11T02:17:09.152072+00:00  
+**Date**: 2026-09-11T02:46:33.553847+00:00  
 **Evaluation Scope**: 50 Heterogeneous Cameras Distributed Across 10 Gujarat Districts  
 **Overall Status**: **PASSED**  
-**Total Runtime**: 1.83s  
+**Total Runtime**: 1.08s  
 
 ---
 
@@ -23,11 +23,11 @@
 | **Events Attempted** | 50 | 50 | 100% |
 | **Events Accepted** | 50 | >= 50 | 100% |
 | **Events Failed** | 0 | 0 | PASSED |
-| **Processing Latency (Mean)** | 8.09 ms | < 50 ms | PASSED |
-| **Processing Latency (p50)** | 2.88 ms | < 50 ms | PASSED |
-| **Processing Latency (p95)** | 27.18 ms | < 200 ms | PASSED |
-| **Watchlist Latency** | 28.71 ms | < 50 ms | PASSED |
-| **Alert Latency** | 27.17 ms | < 100 ms | PASSED |
+| **Processing Latency (Mean)** | 5.21 ms | < 50 ms | PASSED |
+| **Processing Latency (p50)** | 2.06 ms | < 50 ms | PASSED |
+| **Processing Latency (p95)** | 12.98 ms | < 200 ms | PASSED |
+| **Watchlist Latency** | 17.67 ms | < 50 ms | PASSED |
+| **Alert Latency** | 18.78 ms | < 100 ms | PASSED |
 | **Reconnects Handled** | 2 | N/A | RECOVERED |
 | **PTS Gaps Tolerated** | 2 | N/A | TOLERATED |
 | **Decode Failures** | 0 | 0 | PASSED |
