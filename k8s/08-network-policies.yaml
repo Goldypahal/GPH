@@ -1,0 +1,124 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: givin-default-deny-all
+  namespace: givin-system
+  labels:
+    app.kubernetes.io/name: givin
+    app.kubernetes.io/component: network-security
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: givin-api-network-policy
+  namespace: givin-system
+  labels:
+    app.kubernetes.io/name: givin
+    app.kubernetes.io/component: api-security
+spec:
+  podSelector:
+    matchLabels:
+      app: givin-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic from NGINX Ingress Controller & Prometheus Scraper
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # Egress to PostgreSQL (Patroni)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres-patroni
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Egress to Redis Cluster
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Egress to Kafka Cluster
+    - to:
+        - podSelector:
+            matchLabels:
+              app: kafka
+      ports:
+        - protocol: TCP
+          port: 9092
+    # Egress to MinIO Object Storage
+    - to:
+        - podSelector:
+            matchLabels:
+              app: minio
+      ports:
+        - protocol: TCP
+          port: 9000
+    # Egress to DNS
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: givin-storage-isolation-policy
+  namespace: givin-system
+  labels:
+    app.kubernetes.io/name: givin
+    app.kubernetes.io/component: data-security
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: ["postgres-patroni", "redis", "kafka", "minio"]
+  policyTypes:
+    - Ingress
+  ingress:
+    # Restrict data tiers to be reachable only by the application layer and peers
+    - from:
+        - podSelector:
+            matchLabels:
+              app: givin-api
+        - podSelector:
+            matchLabels:
+              app: postgres-patroni
+        - podSelector:
+            matchLabels:
+              app: kafka
+        - podSelector:
+            matchLabels:
+              app: redis

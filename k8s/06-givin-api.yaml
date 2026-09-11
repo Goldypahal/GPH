@@ -56,6 +56,11 @@ spec:
                 secretKeyRef:
                   name: givin-secrets
                   key: JWT_SECRET
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: givin-secrets
+                  key: SECRET_KEY
             - name: MINIO_ROOT_USER
               valueFrom:
                 secretKeyRef:
@@ -66,6 +71,11 @@ spec:
                 secretKeyRef:
                   name: givin-secrets
                   key: MINIO_ROOT_PASSWORD
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: givin-secrets
+                  key: MINIO_SECRET_KEY
             - name: HMAC_SIGNING_KEY
               valueFrom:
                 secretKeyRef:
@@ -78,6 +88,14 @@ spec:
             limits:
               cpu: "4000m"
               memory: "8Gi"
+          startupProbe:
+            httpGet:
+              path: /api/system/health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+            timeoutSeconds: 3
           readinessProbe:
             httpGet:
               path: /api/system/health
