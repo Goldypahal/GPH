@@ -77,6 +77,7 @@ def fleet_50_cameras(db):
                     name=f"{dist_name} Sector {i} Traffic Surveillance Pole",
                     department_id=dept_id,
                     district=dist_name,
+                    location_name=f"{dist_name} Sector {i} Junction",
                     protocol="RTSP",
                     stream_url=f"rtsp://admin:GovSecure2026@10.{cam_index // 256}.{(cam_index % 256)}.{10 + i}:554/live/ch1",
                     lat=b_lat + (i * 0.0035),
