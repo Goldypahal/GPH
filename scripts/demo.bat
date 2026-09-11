@@ -1,19 +1,14 @@
 @echo off
-REM GIVIN Statewide Intelligence Platform Demo Launcher
+REM GIVIN Statewide Intelligence Platform Zero-to-Demo Launcher
 echo ========================================================
-echo   Launching GIVIN Demonstration Environment
+echo   Launching GIVIN Zero-to-Demo Environment
 echo ========================================================
 
-python scripts\demo_seed.py
+python scripts\bootstrap_demo.py
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Demo seeding failed.
+    echo [ERROR] Demo bootstrap or execution failed with code %ERRORLEVEL%.
     exit /b %ERRORLEVEL%
 )
 
-python scripts\run_demo.py
-if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Demo execution failed.
-    exit /b %ERRORLEVEL%
-)
+echo [SUCCESS] Zero-to-Demo completed with exit code 0.
 
-echo [SUCCESS] Demonstration completed successfully.
