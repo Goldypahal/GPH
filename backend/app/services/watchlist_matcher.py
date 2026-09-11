@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from backend.app.models.orm import Watchlist, Alert, VehicleSighting, Camera
@@ -7,6 +7,16 @@ from backend.app.core.config import settings
 
 import time
 import threading
+
+class CachedWatchlistEntry:
+    def __init__(self, id: str, vehicle_number: str, risk_level: str, registered_authority: str, reason: str, case_fir_number: str):
+        self.id = id
+        self.vehicle_number = vehicle_number
+        self.risk_level = risk_level
+        self.registered_authority = registered_authority
+        self.reason = reason
+        self.case_fir_number = case_fir_number
+
 
 class WatchlistMatcher:
     """Exact/fuzzy watchlist matching with confidence-aware alert deduplication."""
@@ -30,13 +40,24 @@ class WatchlistMatcher:
                 return cls._cached_active
         # Refresh outside lock to avoid holding lock during I/O
         fresh = db.query(Watchlist).filter(Watchlist.status == "ACTIVE").all()
+        cached = [
+            CachedWatchlistEntry(
+                id=item.id,
+                vehicle_number=item.vehicle_number,
+                risk_level=item.risk_level,
+                registered_authority=item.registered_authority,
+                reason=item.reason,
+                case_fir_number=item.case_fir_number
+            )
+            for item in fresh
+        ]
         with cls._cache_lock:
-            cls._cached_active = fresh
+            cls._cached_active = cached
             cls._last_cache_time = time.time()
             return cls._cached_active
 
     @classmethod
-    def check_plate(cls, db: Session, sighting: VehicleSighting) -> Optional[Tuple[Watchlist, str, float]]:
+    def check_plate(cls, db: Session, sighting: VehicleSighting) -> Optional[Tuple[Any, str, float]]:
         target = ANPREngine.normalize_plate(sighting.normalized_plate)
         active = cls.get_active_watchlist(db)
         for item in active:
@@ -54,7 +75,10 @@ class WatchlistMatcher:
         match = cls.check_plate(db, sighting)
         if not match:
             return None
-        item, match_type, match_conf = match
+        cached_item, match_type, match_conf = match
+        # Ensure item is attached to the current active DB session
+        attached_item = db.query(Watchlist).filter(Watchlist.id == cached_item.id).first()
+        item = attached_item if attached_item else cached_item
         existing_for_sighting = db.query(Alert).filter(Alert.sighting_id == sighting.id).first()
         if existing_for_sighting:
             return existing_for_sighting
