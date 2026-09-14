@@ -139,6 +139,16 @@
             <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> Unified Live Video Wall & AI Analytics Overlay
           </div>
           <div class="videowall-controls">
+            <span style="font-size:0.8rem; color:var(--text-muted);">Feed Source:</span>
+            <select id="videowall-source-select" class="form-input" style="width:auto; padding:4px 8px; font-size:0.78rem; background:var(--card-bg, #1e293b); color:var(--text-main, #f8fafc); border:1px solid var(--border-color, #334155); border-radius:4px; margin-right:8px;" onchange="applyVideoWallFilter(this.value)">
+              <option value="sentinel" selected>🟢 Sentinel Live Grid (cam01 - cam30)</option>
+              <option value="all">Statewide (All 80 Cameras)</option>
+              <option value="Ahmedabad">Ahmedabad District</option>
+              <option value="Gandhinagar">Gandhinagar District</option>
+              <option value="Surat">Surat District</option>
+              <option value="Vadodara">Vadodara District</option>
+              <option value="Rajkot">Rajkot District</option>
+            </select>
             <span style="font-size:0.8rem; color:var(--text-muted);">Matrix Grid:</span>
             <button class="grid-btn" onclick="setVideoWallGrid(1)">1x1</button>
             <button class="grid-btn active" onclick="setVideoWallGrid(2)">2x2</button>
