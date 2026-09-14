@@ -21,6 +21,8 @@ def generate_section_65b_certificate(
     """
     sighting = db.query(VehicleSighting).filter(VehicleSighting.id == sighting_id).first()
     if not sighting:
+        sighting = db.query(VehicleSighting).filter(VehicleSighting.camera_id == sighting_id).order_by(VehicleSighting.timestamp.desc()).first()
+    if not sighting:
         raise HTTPException(status_code=404, detail="Sighting record not found")
 
     cam = db.query(Camera).filter(Camera.id == sighting.camera_id).first()

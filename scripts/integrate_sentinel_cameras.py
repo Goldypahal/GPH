@@ -3,7 +3,7 @@
 Integration Script: Ingest Sentinel Camera Grid (cam01 - cam30) into GIVIN Database.
 Server: 103.250.160.189:8554
 Protocol: RTSP / TCP
-Auth: amanpalpathi@gmail.com / UDTR-YLX2-9VTC
+Auth: goldypahal06@gmail.com / PBL8-NRGG-BN8J
 """
 
 import sys
@@ -50,8 +50,8 @@ SENTINEL_GRID_SPECS = [
     {"id": "cam30", "name": "Sentinel Cam 30 (Modhera State Highway Checkpost)", "district": "Mehsana", "loc": "Modhera Road State Checkpost", "lat": 23.6012, "lng": 72.3812, "res": "1080p", "codec": "H.264", "fps": 25},
 ]
 
-EMAIL = "amanpalpathi@gmail.com"
-PASSWORD = "UDTR-YLX2-9VTC"
+EMAIL = "goldypahal06@gmail.com"
+PASSWORD = "PBL8-NRGG-BN8J"
 SERVER = "103.250.160.189:8554"
 
 email_encoded = quote(EMAIL, safe="")
@@ -162,6 +162,9 @@ def integrate_sentinel_cameras():
                     port=8554
                 )
                 db.add(cred)
+            else:
+                cred.username = EMAIL
+                cred.encrypted_password = PASSWORD
 
         db.commit()
         print(f"\n[SUCCESS] Integrated {integrated} new cameras, updated {updated} existing cameras.")

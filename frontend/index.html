@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GIVIN: Gujarat Integrated Video Intelligence Network | Command Center</title>
+  <title>GIVIN: Gujarat Integrated Video Intelligence Network | Police C4I Command Center</title>
+  <meta name="description" content="Statewide C4I Command, Control, Communications, and Intelligence platform for Gujarat Police. Real-time ANPR, vehicle journey reconstruction, and Section 65B digital evidence vault.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,79 +13,99 @@
 </head>
 <body>
 
-  <!-- Top Police Command Bar -->
-  <header class="top-nav">
+  <!-- Top Police Command Bar (Sticky Header) -->
+  <header class="top-nav" role="banner">
     <div class="brand-section">
-      <div class="state-emblem">GJ</div>
+      <div class="state-emblem" aria-label="State of Gujarat Police Emblem">GJ</div>
       <div>
-        <div class="brand-title">GIVIN <span style="font-size:0.75rem; color:#f59e0b; border:1px solid #f59e0b; padding:1px 6px; border-radius:3px; font-weight:normal;">POLICE C4I</span></div>
-        <div class="brand-subtitle">GUJARAT INTEGRATED VIDEO INTELLIGENCE NETWORK</div>
+        <div class="brand-title">
+          <span>GIVIN</span>
+          <span class="brand-badge">POLICE C4I</span>
+        </div>
+        <div class="brand-subtitle">Gujarat Integrated Video Intelligence Network</div>
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <nav class="nav-tabs">
+    <!-- Universal Search Trigger (Cmd/Ctrl+K) -->
+    <button class="cmd-palette-btn" onclick="openCommandPalette()" title="Universal Search (Ctrl+K)" aria-label="Open Command Palette">
+      <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <span>Quick Search...</span>
+      <kbd class="cmd-kbd">Ctrl+K</kbd>
+    </button>
+
+    <!-- Navigation Tabs Console -->
+    <nav class="nav-tabs" id="main-nav-tabs" role="navigation" aria-label="Main Navigation">
       <button class="nav-tab-btn active" data-view="gis-view" id="tab-gis">
-        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg> GIS Map & Registry
+        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+        <span>GIS Map &amp; Registry</span>
       </button>
       <button class="nav-tab-btn" data-view="videowall-view" id="tab-videowall">
-        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg> Video Wall (Grid)
+        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+        <span>Video Wall (Grid)</span>
       </button>
       <button class="nav-tab-btn" data-view="tracer-view" id="tab-tracer">
-        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg> Vehicle Journey Tracer
+        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+        <span>Journey Tracer</span>
       </button>
       <button class="nav-tab-btn" data-view="alerts-view" id="tab-alerts">
-        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Watchlists & Alerts <span id="alert-counter-badge" style="background:#ef4444; color:#fff; font-size:0.68rem; padding:1px 5px; border-radius:3px; font-weight:bold;">6</span>
+        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        <span>Watchlists &amp; Alerts</span>
+        <span id="alert-counter-badge" style="background:#ef4444; color:#fff; font-size:0.68rem; padding:1px 6px; border-radius:10px; font-weight:bold;">6</span>
       </button>
       <button class="nav-tab-btn" data-view="scale-view" id="tab-scale">
-        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> 80k Scale Architecture
+        <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        <span>80k Scale Architecture</span>
       </button>
     </nav>
 
     <!-- System Telemetry & Clock -->
     <div class="system-status-pill">
-      <button id="theme-toggle-btn" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Light/Dark Theme">
+      <button id="theme-toggle-btn" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
         <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
         <span>Dark Mode</span>
       </button>
-      <div class="health-badge">
+      <div class="health-badge" title="Active High-Assurance Architecture">
         <span class="pulse-dot"></span>
         <span id="system-status-text">HIGH ASSURANCE OPERATIONAL</span>
       </div>
-      <div class="time-display" id="realtime-clock">--:--:-- UTC</div>
+      <div class="time-display" id="realtime-clock" aria-live="off">--:--:-- UTC</div>
+      <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Open Navigation Menu">
+        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
     </div>
   </header>
 
   <!-- Live Hotlist Alert Ticker Bar -->
-  <div class="alert-ticker-strip">
+  <aside class="alert-ticker-strip" role="complementary" aria-label="Priority Hotlist Broadcast">
     <div class="ticker-lead">
-      <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg> CRITICAL HIT:
+      <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+      <span>PRIORITY HOTLIST INTERCEPT:</span>
     </div>
     <div class="ticker-msg" id="ticker-alert-text">
       [ALT-20260909-VLS1] Stolen Red Swift GJ01AB1234 intercepted at Valsad Bhilad Border Post (Southbound NH-48). Interceptor 12 dispatched.
     </div>
-    <button class="ticker-btn" onclick="openVehicleJourney('GJ01AB1234')">Trace Route</button>
-  </div>
+    <button class="ticker-btn" onclick="openVehicleJourney('GJ01AB1234')">Reconstruct Journey</button>
+  </aside>
 
-  <!-- Main Content Container -->
-  <main class="main-content">
+  <!-- Main Application Content Container -->
+  <main class="main-content" role="main">
 
-    <!-- Stat Metric Cards Row -->
-    <section class="stats-grid">
+    <!-- Global KPI Metric Cards Row -->
+    <section class="stats-grid" aria-label="Operational Metrics Summary">
       <div class="stat-card">
         <span class="stat-label">Integrated Cameras</span>
         <span class="stat-val" id="stat-total-cams">--</span>
         <span class="stat-sub">Across 12 Gujarat Districts</span>
       </div>
       <div class="stat-card success-card">
-        <span class="stat-label">Online Status</span>
+        <span class="stat-label">Online Fleet Status</span>
         <span class="stat-val" id="stat-online-cams">--</span>
-        <span class="stat-sub" id="stat-online-sub">Live Availability Status</span>
+        <span class="stat-sub" id="stat-online-sub">Live Measured Availability</span>
       </div>
       <div class="stat-card alert-card">
         <span class="stat-label">Active Hotlist Hits</span>
         <span class="stat-val" id="stat-active-alerts">6</span>
-        <span class="stat-sub">eGujCop / VAHAN Real-time</span>
+        <span class="stat-sub">eGujCop / VAHAN Real-Time</span>
       </div>
       <div class="stat-card warn-card">
         <span class="stat-label">Governing Depts</span>
@@ -93,17 +114,18 @@
       </div>
     </section>
 
-    <!-- VIEW 1: GIS Map & Statewide Camera Registry (Model 1 & 2) -->
-    <section class="view-section active" id="gis-view">
+    <!-- VIEW 1: GIS Map & Statewide Camera Registry -->
+    <section class="view-section active" id="gis-view" aria-label="GIS Map Viewport">
       <div class="two-col-layout">
         <!-- GIS Map Panel -->
         <div class="panel-card">
           <div class="panel-header">
             <div class="panel-title">
-              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Gujarat Statewide Geospatial Surveillance Map
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              <span>Gujarat Statewide Geospatial Surveillance Map</span>
             </div>
             <div class="panel-actions">
-              <button class="quick-tag-btn" onclick="filterMapByDistrict('all')">All State</button>
+              <button class="quick-tag-btn active" onclick="filterMapByDistrict('all')">Statewide</button>
               <button class="quick-tag-btn" onclick="filterMapByDistrict('Ahmedabad')">Ahmedabad</button>
               <button class="quick-tag-btn" onclick="filterMapByDistrict('Surat')">Surat</button>
               <button class="quick-tag-btn" onclick="filterMapByDistrict('Vadodara')">Vadodara</button>
@@ -117,30 +139,32 @@
         <div class="panel-card" style="display:flex; flex-direction:column;">
           <div class="panel-header">
             <div class="panel-title">
-              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg> Camera Registry (Model 1)
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+              <span>Camera Registry (Model 1)</span>
             </div>
             <button class="primary-search-btn" style="padding:6px 14px; font-size:0.8rem;" onclick="openOnboardModal()">+ Onboard</button>
           </div>
           <div style="padding:12px; border-bottom:1px solid var(--border-color);">
-            <input type="text" id="camera-filter-input" class="form-input" placeholder="Search camera, district, vendor..." onkeyup="filterCameraList()">
+            <input type="text" id="camera-filter-input" class="form-input" placeholder="Search camera, district, vendor..." onkeyup="filterCameraList()" aria-label="Search Camera Registry">
           </div>
           <div style="flex:1; max-height:540px; overflow-y:auto; padding:10px;" id="camera-sidebar-list">
-            <!-- Populated dynamically -->
+            <!-- Populated dynamically by map.js -->
           </div>
         </div>
       </div>
     </section>
 
-    <!-- VIEW 2: Unified Video Wall Matrix (Model 2 & 3) -->
-    <section class="view-section" id="videowall-view">
+    <!-- VIEW 2: Unified Video Wall Matrix -->
+    <section class="view-section" id="videowall-view" aria-label="Live Video Wall Viewport">
       <div class="panel-card">
         <div class="panel-header">
           <div class="panel-title">
-            <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> Unified Live Video Wall & AI Analytics Overlay
+            <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            <span>Unified Live Video Wall &amp; AI Analytics Overlay</span>
           </div>
           <div class="videowall-controls">
             <span style="font-size:0.8rem; color:var(--text-muted);">Feed Source:</span>
-            <select id="videowall-source-select" class="form-input" style="width:auto; padding:4px 8px; font-size:0.78rem; background:var(--card-bg, #1e293b); color:var(--text-main, #f8fafc); border:1px solid var(--border-color, #334155); border-radius:4px; margin-right:8px;" onchange="applyVideoWallFilter(this.value)">
+            <select id="videowall-source-select" class="form-select" style="width:auto; padding:4px 10px; font-size:0.78rem; margin-right:8px;" onchange="applyVideoWallFilter(this.value)">
               <option value="sentinel" selected>🟢 Sentinel Live Grid (cam01 - cam30)</option>
               <option value="all">Statewide (All 80 Cameras)</option>
               <option value="Ahmedabad">Ahmedabad District</option>
@@ -154,29 +178,33 @@
             <button class="grid-btn active" onclick="setVideoWallGrid(2)">2x2</button>
             <button class="grid-btn" onclick="setVideoWallGrid(3)">3x3</button>
             <button class="grid-btn" onclick="setVideoWallGrid(4)">4x4</button>
-            <button class="quick-tag-btn" style="margin-left:12px;" onclick="refreshVideoStreams()"><svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Refresh Feeds</button>
+            <button class="quick-tag-btn" style="margin-left:12px;" onclick="refreshVideoStreams()">
+              <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              <span>Refresh Feeds</span>
+            </button>
           </div>
         </div>
         <div class="videowall-grid grid-2x2" id="videowall-container">
-          <!-- Populated dynamically with live feed tiles -->
+          <!-- Populated dynamically by videowall.js -->
         </div>
       </div>
     </section>
 
-    <!-- VIEW 3: Designated Vehicle Journey Tracer (Core Hackathon Test Case) -->
-    <section class="view-section" id="tracer-view">
+    <!-- VIEW 3: Designated Vehicle Journey Tracer (Dual-Pane Layout) -->
+    <section class="view-section" id="tracer-view" aria-label="Vehicle Journey Tracer Viewport">
       <div class="search-bar-hero">
         <div class="search-input-wrap">
-          <label style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px; display:block;">Target Vehicle Registration Plate Number</label>
+          <label class="form-label" for="vehicle-search-input">Target Vehicle Registration Plate Number (HSRP)</label>
           <input type="text" id="vehicle-search-input" class="search-input-field" placeholder="Enter Registration No. (e.g. GJ01AB1234)" value="GJ01AB1234">
         </div>
         <button class="primary-search-btn" onclick="executeVehicleSearch()">
-          <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Track Vehicle Journey
+          <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <span>Track Vehicle Journey</span>
         </button>
       </div>
 
-      <div style="margin-bottom:16px; display:flex; gap:10px; align-items:center;">
-        <span style="font-size:0.8rem; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Evaluation Quick Traces:</span>
+      <div class="quick-traces-bar">
+        <span style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Evaluation Quick Traces:</span>
         <button class="quick-tag-btn" onclick="quickSearchVehicle('GJ01AB1234')">GJ01AB1234 (Red Swift - Armed Robbery)</button>
         <button class="quick-tag-btn" onclick="quickSearchVehicle('GJ06XY9876')">GJ06XY9876 (White Creta - Stolen)</button>
         <button class="quick-tag-btn" onclick="quickSearchVehicle('GJ05CD5521')">GJ05CD5521 (Black Scorpio - Wanted)</button>
@@ -184,8 +212,8 @@
       </div>
 
       <!-- Journey Summary Box -->
-      <div id="journey-summary-panel" style="display:none; margin-bottom:20px;">
-        <div class="panel-card" style="border-left: 4px solid var(--accent-cyan); padding:18px 24px;">
+      <div id="journey-summary-panel" style="display:none; margin-bottom:18px;">
+        <div class="panel-card" style="border-left: 4px solid var(--accent-cyan); padding:16px 20px;">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
             <div>
               <div style="display:flex; align-items:center; gap:12px;">
@@ -196,21 +224,22 @@
                 Suspect vehicle involved in armed robbery. Tracked across 5 Gujarat highway checkpoints.
               </div>
             </div>
-            <div style="display:flex; gap:24px; align-items:center;">
+            <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap;">
               <div>
-                <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase;">Total Sightings</div>
+                <div style="font-size:0.7rem; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Sightings</div>
                 <div style="font-size:1.4rem; font-weight:800; color:var(--text-main);" id="sum-sightings">5</div>
               </div>
               <div>
-                <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase;">Distance Traversed</div>
+                <div style="font-size:0.7rem; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Traversed</div>
                 <div style="font-size:1.4rem; font-weight:800; color:var(--accent-cyan);" id="sum-distance">367.4 km</div>
               </div>
               <div>
-                <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase;">Avg Speed</div>
+                <div style="font-size:0.7rem; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Avg Speed</div>
                 <div style="font-size:1.4rem; font-weight:800; color:var(--accent-amber);" id="sum-speed">70.6 km/h</div>
               </div>
-              <button class="primary-search-btn" id="live-pursuit-toggle-btn" style="background:#dc2626; border-color:#b91c1c; padding:10px 18px;" onclick="toggleLivePursuit()">
-                <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg> LIVE TRACK ON MAP
+              <button class="primary-search-btn" id="live-pursuit-toggle-btn" style="background:#dc2626; border-color:#b91c1c; padding:8px 16px;" onclick="toggleLivePursuit()">
+                <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                <span>LIVE TRACK ON MAP</span>
               </button>
             </div>
           </div>
@@ -218,12 +247,12 @@
       </div>
 
       <!-- Live Pursuit HUD -->
-      <div id="live-pursuit-hud" class="live-pursuit-hud" style="display:none;">
+      <div id="live-pursuit-hud" class="live-pursuit-hud" style="display:none;" aria-live="polite">
         <div class="lp-hud-header">
           <span class="lp-hud-blip-dot" id="lp-status-dot"></span>
           <span id="lp-hud-title">LIVE PURSUIT: <span id="lp-hud-plate">GJ01AB1234</span></span>
           <span class="lp-hud-status-pill" id="lp-hud-status-pill">CONNECTING</span>
-          <button class="lp-hud-close" onclick="toggleLivePursuit()">✕</button>
+          <button class="lp-hud-close" onclick="toggleLivePursuit()" aria-label="Close Live Pursuit HUD">✕</button>
         </div>
         <div class="lp-hud-body">
           <div class="lp-hud-stat"><div class="lp-hud-label">Speed</div><div class="lp-hud-value" id="lp-hud-speed">–</div></div>
@@ -234,44 +263,65 @@
           <div class="lp-hud-stat"><div class="lp-hud-label">ETA to that Camera</div><div class="lp-hud-value" id="lp-hud-eta">–</div></div>
         </div>
         <div class="lp-hud-footnote" id="lp-hud-footnote">
-          Position is dead-reckoned from the last two confirmed ANPR sightings (heading + speed). GIVIN has no in-vehicle GPS. Use "Simulate Alert" on Watchlists tab to push a fresh sighting.
+          Position dead-reckoned from the last two confirmed ANPR sightings (heading + speed). Use "Simulate Alert" on Watchlists tab to push a fresh sighting.
         </div>
       </div>
 
-      <!-- Chronological Trajectory Cards -->
-      <div class="panel-card">
-        <div class="panel-header">
-          <div class="panel-title">
-            <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Timestamped Location-wise Movement History (Sequence & Evidence)
+      <!-- Dual-Pane Synchronized Trajectory Container -->
+      <div class="tracer-split-layout">
+        <!-- Left: Chronological Checkpoints -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span>Timestamped Waypoints &amp; Evidence</span>
+            </div>
+            <button class="quick-tag-btn" onclick="showJourneyOnMap()">
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+              <span>Focus Route on Main Map</span>
+            </button>
           </div>
-          <button class="primary-search-btn" style="padding:6px 14px; font-size:0.82rem;" onclick="showJourneyOnMap()">
-            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg> Render Route on GIS Map
-          </button>
+          <div style="padding:16px; max-height:580px; overflow-y:auto;" id="journey-nodes-list">
+            <div style="text-align:center; padding:40px; color:var(--text-muted);">
+              Click "Track Vehicle Journey" or one of the evaluation test plates above to reconstruct the suspect route.
+            </div>
+          </div>
         </div>
-        <div style="padding:16px;" id="journey-nodes-list">
-          <div style="text-align:center; padding:40px; color:var(--text-muted);">
-            Click "Track Vehicle Journey" or one of the evaluation test plates above to reconstruct the suspect's route.
+
+        <!-- Right: Synchronized Journey Route Map -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+              <span>Route Trajectory Visualization</span>
+            </div>
+            <span style="font-size:0.75rem; color:var(--text-dim);" id="tracer-map-status">Gujarat Checkpoints</span>
           </div>
+          <div id="tracer-route-map" class="tracer-map-container"></div>
         </div>
       </div>
     </section>
 
     <!-- VIEW 4: Watchlists & Real-Time Alert Center -->
-    <section class="view-section" id="alerts-view">
+    <section class="view-section" id="alerts-view" aria-label="Watchlists and Alerts Viewport">
       <div class="two-col-layout">
         <!-- Live Alert Dispatch Feed -->
         <div class="panel-card">
           <div class="panel-header">
             <div class="panel-title">
-              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg> Real-Time Law Enforcement Alarm Dispatch
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              <span>Real-Time Law Enforcement Alarm Dispatch</span>
             </div>
             <div class="panel-actions">
-              <button class="quick-tag-btn" style="background:var(--accent-red); color:#fff;" onclick="triggerSimulatedAlert()">+ Simulate Alert</button>
-              <button class="quick-tag-btn" onclick="loadAlerts()"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Refresh</button>
+              <button class="quick-tag-btn" style="background:var(--accent-red); color:#fff; border-color:var(--accent-red);" onclick="triggerSimulatedAlert()">+ Simulate Alert</button>
+              <button class="quick-tag-btn" onclick="loadAlerts()">
+                <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                <span>Refresh</span>
+              </button>
             </div>
           </div>
           <div class="alert-feed-list" id="alert-items-container">
-            <!-- Populated dynamically -->
+            <!-- Populated dynamically by alerts.js -->
           </div>
         </div>
 
@@ -279,39 +329,43 @@
         <div class="panel-card">
           <div class="panel-header">
             <div class="panel-title">
-              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg> Hotlist Database (VAHAN / eGujCop)
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+              <span>Hotlist Database (VAHAN / eGujCop)</span>
             </div>
-            <button class="quick-tag-btn" onclick="openAddWatchlistModal()">+ Add Suspect</button>
+            <button class="primary-search-btn" style="padding:6px 14px; font-size:0.8rem;" onclick="openAddWatchlistModal()">+ Register Hotlist Vehicle</button>
           </div>
           <div style="padding:10px; max-height:580px; overflow-y:auto;" id="watchlist-table-container">
-            <!-- Populated dynamically -->
+            <!-- Populated dynamically by watchlist.js -->
           </div>
         </div>
       </div>
     </section>
 
     <!-- VIEW 5: Statewide Scalability Simulator (~80,000 Cameras) -->
-    <section class="view-section" id="scale-view">
+    <section class="view-section" id="scale-view" aria-label="Scalability Architecture Viewport">
       <div class="two-col-layout">
+        <!-- Sizing Calculator -->
         <div class="panel-card">
           <div class="panel-header">
             <div class="panel-title">
-              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg> Statewide Capacity & Sizing Calculator (~80,000 Target)
-              <span class="quick-tag-btn" style="background:var(--bg-tertiary); color:var(--accent-cyan); font-size:0.68rem; margin-left:8px; border:1px solid var(--border-color);">MODELED SIZING</span>
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+              <span>Statewide Capacity &amp; Sizing Calculator (~80,000 Target)</span>
             </div>
+            <span class="quick-tag-btn" style="font-size:0.68rem; color:var(--accent-cyan);">MODELED SIZING</span>
           </div>
           <div style="padding:20px;">
-            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;">
-              This interactive calculator simulates the Gujarat statewide scale requirements, contrasting brute-force 
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;">
+              This interactive calculator simulates Gujarat's statewide scale requirements, contrasting brute-force 
               <strong>Model 4 Central Streaming</strong> against GIVIN's <strong>Hybrid Edge-Metadata Architecture</strong>.
             </p>
-            <div class="info-callout" style="font-size:0.75rem; margin-bottom:16px; padding:10px 14px; border-radius:6px; border-left:3px solid var(--accent-cyan);">
-              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg><strong>Methodology:</strong> Sizing calculations are based on derived traffic models (2 sightings/sec/cam, 1.2 KB metadata, 2% alert crop burst). Physical 80k-camera validation is performed during staged multi-node infrastructure acceptance.
+            <div class="sub-panel-card" style="font-size:0.75rem; margin-bottom:16px; border-left:3px solid var(--accent-cyan);">
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              <strong>Methodology:</strong> Sizing calculations are based on derived traffic models (2 sightings/sec/cam, 1.2 KB metadata, 2% alert crop burst). Physical 80k-camera validation is performed during staged multi-node infrastructure acceptance.
             </div>
 
             <div class="form-group">
               <label class="form-label">Total Camera Network Size: <span id="scale-cam-val" style="color:var(--accent-cyan); font-weight:800;">80,000</span> Cameras</label>
-              <input type="range" id="scale-cam-slider" min="1000" max="120000" step="1000" value="80000" style="width:100%;" oninput="updateScaleSimulation()">
+              <input type="range" id="scale-cam-slider" min="1000" max="120000" step="1000" value="80000" style="width:100%; accent-color:var(--accent-cyan);" oninput="updateScaleSimulation()">
             </div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
@@ -334,18 +388,18 @@
               </div>
             </div>
 
-            <div style="background:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:6px; padding:18px; margin-top:16px;">
-              <div style="font-size:0.85rem; font-weight:700; color:var(--text-main); margin-bottom:14px; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between;">
-                <span>Architectural Comparison & Bandwidth Consumption</span>
+            <div class="sub-panel-card" style="margin-top:16px;">
+              <div style="font-size:0.82rem; font-weight:700; color:var(--text-main); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between;">
+                <span>Architectural Comparison &amp; Bandwidth Consumption</span>
                 <span style="font-size:0.7rem; color:var(--text-muted); font-weight:normal;">[DERIVED ESTIMATE]</span>
               </div>
               
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <span style="font-size:0.85rem; color:#dc2626;">Model 4 (Brute Central Streaming):</span>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:0.84rem; color:#dc2626;">Model 4 (Brute Central Streaming):</span>
                 <span style="font-family:var(--font-mono); font-size:1.15rem; font-weight:800; color:#dc2626;" id="calc-central-bw">320.0 Gbps</span>
               </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <span style="font-size:0.85rem; color:var(--accent-green);">GIVIN Hybrid Edge Architecture:</span>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:0.84rem; color:var(--accent-green);">GIVIN Hybrid Edge Architecture:</span>
                 <span style="font-family:var(--font-mono); font-size:1.15rem; font-weight:800; color:var(--accent-green);" id="calc-hybrid-bw">5.44 Gbps</span>
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:10px;">
@@ -354,15 +408,15 @@
               </div>
             </div>
 
-            <div style="margin-top:18px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
               <div class="stat-card success-card" style="padding:12px 16px;">
                 <span class="stat-label">Illustrative Annual Cost Savings</span>
-                <span class="stat-val" style="font-size:1.4rem;" id="calc-savings-cost">₹187.2 Cr</span>
+                <span class="stat-val" style="font-size:1.35rem;" id="calc-savings-cost">₹187.2 Cr</span>
                 <span class="stat-sub">* Preliminary TCO model subject to vendor quotes</span>
               </div>
               <div class="stat-card" style="padding:12px 16px;">
                 <span class="stat-label">Storage Optimization</span>
-                <span class="stat-val" style="font-size:1.4rem;" id="calc-storage-pb">103.6 PB</span>
+                <span class="stat-val" style="font-size:1.35rem;" id="calc-storage-pb">103.6 PB</span>
                 <span class="stat-sub">Central metadata vs District ring buffering</span>
               </div>
             </div>
@@ -371,13 +425,15 @@
             <div class="sub-panel-card" style="margin-top:20px;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
                 <div>
-                  <span style="font-size:0.88rem; font-weight:bold; color:var(--accent-cyan); display:inline-flex; align-items:center; gap:6px;">
-                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> IN-PROCESS SYNTHETIC INGESTION BENCHMARK
+                  <span style="font-size:0.86rem; font-weight:bold; color:var(--accent-cyan); display:inline-flex; align-items:center; gap:6px;">
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    <span>IN-PROCESS SYNTHETIC INGESTION BENCHMARK</span>
                   </span>
-                  <span class="quick-tag-btn" style="background:var(--bg-card); color:var(--accent-amber); font-size:0.65rem; margin-left:6px; border:1px solid var(--border-color);">80K MODELED SIZING → 10K APPLICATION SAMPLE</span>
+                  <span class="quick-tag-btn" style="color:var(--accent-amber); font-size:0.65rem; margin-left:6px;">80K MODELED → 10K APPLICATION SAMPLE</span>
                 </div>
                 <button id="btn-run-stress-test" class="primary-search-btn" style="padding:6px 14px; font-size:0.8rem;" onclick="runLiveStressTest()">
-                  <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>Run Benchmark
+                  <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                  <span>Execute Stress Test</span>
                 </button>
               </div>
               <div id="stress-test-status" style="font-size:0.78rem; margin-bottom:10px; display:none;"></div>
@@ -399,7 +455,7 @@
                   <span class="stat-val" style="font-size:1.1rem; color:var(--accent-green);" id="stress-loss">0.0%</span>
                 </div>
               </div>
-              <div id="stress-methodology-note" style="display:none; margin-top:10px; font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono); background:var(--bg-tertiary); padding:10px; border-radius:6px; border:1px solid var(--border-color);"></div>
+              <div id="stress-methodology-note" style="display:none; margin-top:10px; font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono); background:var(--surface-inset); padding:10px; border-radius:6px; border:1px solid var(--border-color);"></div>
             </div>
           </div>
         </div>
@@ -408,13 +464,14 @@
         <div class="panel-card">
           <div class="panel-header">
             <div class="panel-title">
-              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> 3-Tier Statewide Deployment Topology
+              <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+              <span>3-Tier Statewide Deployment Topology</span>
             </div>
           </div>
           <div style="padding:20px; font-size:0.82rem; line-height:1.6; color:var(--text-muted);">
             <div class="tier-card">
               <div style="color:var(--accent-cyan); font-weight:bold;">TIER 1: 33 DISTRICT EDGE CLUSTERS</div>
-              <div>- Multi-vendor NVRs & RTSP ingestion (CP Plus, Hikvision, Dahua, Axis)</div>
+              <div>- Multi-vendor NVRs &amp; RTSP ingestion (CP Plus, Hikvision, Dahua, Axis)</div>
               <div>- Real-time Edge AI: Vehicle Detection + ANPR character extraction</div>
               <div>- 15-30 days local ring buffer storage; zero continuous central streaming</div>
             </div>
@@ -423,18 +480,19 @@
               <div style="color:var(--accent-amber); font-weight:bold;">TIER 2: 4 REGIONAL INTELLIGENCE HUBS</div>
               <div>- North, South, Central, Saurashtra-Kutch regional broker clusters</div>
               <div>- Inter-district correlation and high-speed plate deduplication</div>
-              <div>- VAHAN & eGujCop hotlist caching for sub-millisecond lookups</div>
+              <div>- VAHAN &amp; eGujCop hotlist caching for sub-millisecond lookups</div>
             </div>
 
             <div class="tier-card">
-              <div style="color:var(--accent-green); font-weight:bold;">TIER 3: STATE COMMAND & CONTROL (GANDHINAGAR)</div>
+              <div style="color:var(--accent-green); font-weight:bold;">TIER 3: STATE COMMAND &amp; CONTROL (GANDHINAGAR)</div>
               <div>- Statewide C4I Video Wall, GIS Mapping, and Cross-District Journey Tracer</div>
-              <div>- Section 65B Digital Evidence Certification & Audit Vault</div>
+              <div>- Section 65B Digital Evidence Certification &amp; Audit Vault</div>
               <div>- Low-latency on-demand video pull only during verified alerts</div>
             </div>
 
-            <button class="primary-search-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="viewAuditTrail()">
-              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>View Cryptographic Audit Log Vault
+            <button class="primary-search-btn" style="width:100%; justify-content:center; margin-top:14px;" onclick="viewAuditTrail()">
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <span>View Cryptographic Audit Log Vault</span>
             </button>
           </div>
         </div>
@@ -443,86 +501,178 @@
 
   </main>
 
-  <!-- Section 65B Digital Evidence Certificate Modal -->
-  <div class="modal-backdrop" id="cert-modal">
-    <div class="modal-box" style="max-width:850px;">
+  <!-- ========================================================================
+       MODALS ARCHITECTURE
+       ======================================================================== -->
+
+  <!-- Universal Command Palette Modal (Ctrl+K) -->
+  <div class="modal-backdrop" id="cmd-palette-modal" onclick="closeModalOnBackdrop(event, 'cmd-palette-modal')">
+    <div class="modal-box cmd-palette-box" onclick="event.stopPropagation()">
+      <div class="cmd-palette-input-wrap">
+        <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="cmd-palette-input" class="cmd-palette-input" placeholder="Search plates, cameras, districts, FIRs..." onkeyup="handleCommandPaletteSearch(event)">
+        <kbd class="cmd-kbd">ESC</kbd>
+      </div>
+      <div class="cmd-palette-results" id="cmd-palette-results">
+        <!-- Results rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- In-App Patrol Unit Dispatch Modal (Replacing window.prompt) -->
+  <div class="modal-backdrop" id="dispatch-modal" onclick="closeModalOnBackdrop(event, 'dispatch-modal')">
+    <div class="modal-box" style="max-width:540px;" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <div class="modal-title">Certificate of Electronic Evidence (Section 65B)</div>
+        <div class="modal-title">
+          <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span>Dispatch Interceptor Unit</span>
+        </div>
+        <button class="modal-close-btn" onclick="closeModal('dispatch-modal')">&times;</button>
+      </div>
+      <form id="dispatch-form" onsubmit="submitDispatchAction(event)">
+        <div class="modal-body">
+          <input type="hidden" id="dispatch-alert-id">
+          
+          <div class="sub-panel-card" style="margin-bottom:14px; border-left:3px solid var(--accent-red);">
+            <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Target Vehicle</div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+              <span class="alert-plate" id="dispatch-plate-text">GJ01AB1234</span>
+              <span class="alert-risk-badge risk-CRITICAL-badge" id="dispatch-risk-text">CRITICAL</span>
+            </div>
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;" id="dispatch-location-text">Valsad Bhilad Border Post</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dispatch-unit-select">Select Patrol / Highway Interceptor Unit</label>
+            <select id="dispatch-unit-select" class="form-select" required onchange="handleUnitSelectChange(this.value)">
+              <option value="PCR Interceptor 12 - Highway Rapid Response" selected>PCR Interceptor 12 - Highway Rapid Response (NH-48 Sector 2)</option>
+              <option value="PCR Interceptor 04 - Tactical Intercept">PCR Interceptor 04 - Tactical Intercept (Vadodara Express)</option>
+              <option value="Highway Patrol Unit 08 - Surat South">Highway Patrol Unit 08 - Surat South (Surat Rural)</option>
+              <option value="Netram Flying Squad 02 - Ahmedabad">Netram Flying Squad 02 - Ahmedabad Netram</option>
+              <option value="CUSTOM">-- Custom Interceptor Call-Sign --</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="dispatch-custom-unit-wrap" style="display:none;">
+            <label class="form-label" for="dispatch-custom-unit-input">Custom Interceptor Call-Sign</label>
+            <input type="text" id="dispatch-custom-unit-input" class="form-input" placeholder="e.g. Special Operations Group Unit 01">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dispatch-operator-input">Dispatching Officer / Operator</label>
+            <input type="text" id="dispatch-operator-input" class="form-input" value="Inspector V. Patel (C4I Netram)" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dispatch-remarks-input">Operational Intercept Orders</label>
+            <textarea id="dispatch-remarks-input" class="form-input" rows="3" required>Patrol dispatched for immediate visual confirmation and tactical containment at highway toll barrier.</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="quick-tag-btn" onclick="closeModal('dispatch-modal')">Cancel</button>
+          <button type="submit" class="primary-search-btn" style="background:var(--accent-red); border-color:#b91c1c;">
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span>Confirm &amp; Transmit Dispatch</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Section 65B Digital Evidence Certificate Modal -->
+  <div class="modal-backdrop" id="cert-modal" onclick="closeModalOnBackdrop(event, 'cert-modal')">
+    <div class="modal-box" style="max-width:850px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <span>Certificate of Electronic Evidence (Section 65B)</span>
+        </div>
         <button class="modal-close-btn" onclick="closeModal('cert-modal')">&times;</button>
       </div>
-      <div id="cert-content-render">
-        <!-- Rendered dynamically -->
+      <div class="modal-body">
+        <div id="cert-content-render">
+          <!-- Rendered dynamically by evidence_modal.js -->
+        </div>
       </div>
-      <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:12px;">
+      <div class="modal-footer">
         <button class="quick-tag-btn" onclick="closeModal('cert-modal')">Close</button>
-        <button class="primary-search-btn" onclick="window.print()">Print / Export PDF</button>
+        <button class="primary-search-btn" onclick="window.print()">
+          <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          <span>Print / Export PDF Affidavit</span>
+        </button>
       </div>
     </div>
   </div>
 
   <!-- Camera Onboarding Modal (Model 1 Registry) -->
-  <div class="modal-backdrop" id="onboard-modal">
-    <div class="modal-box" style="max-width:600px;">
+  <div class="modal-backdrop" id="onboard-modal" onclick="closeModalOnBackdrop(event, 'onboard-modal')">
+    <div class="modal-box" style="max-width:600px;" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <div class="modal-title">Onboard Heterogeneous Camera (Model 1 Registry)</div>
+        <div class="modal-title">
+          <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+          <span>Onboard Heterogeneous Camera (Model 1 Registry)</span>
+        </div>
         <button class="modal-close-btn" onclick="closeModal('onboard-modal')">&times;</button>
       </div>
       <form id="onboard-form" onsubmit="submitOnboardCamera(event)">
-        <div class="form-group">
-          <label class="form-label">Camera Logical Code</label>
-          <input type="text" id="onboard-code" class="form-input" placeholder="CAM-GJ-AHM-08" required>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="onboard-code">Camera Logical Code</label>
+            <input type="text" id="onboard-code" class="form-input" placeholder="CAM-GJ-AHM-08" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="onboard-name">Camera Name / Description</label>
+            <input type="text" id="onboard-name" class="form-input" placeholder="Pakwan Crossroad ANPR Gate" required>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="onboard-district">District</label>
+              <input type="text" id="onboard-district" class="form-input" placeholder="Ahmedabad" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="onboard-dept">Department</label>
+              <select id="onboard-dept" class="form-select">
+                <option value="HOME_POLICE">Home Department (Police)</option>
+                <option value="RTO_TRANS">RTO &amp; Transport</option>
+                <option value="FCSCA">Food &amp; Civil Supplies</option>
+                <option value="GMB">Gujarat Maritime Board</option>
+                <option value="AMC">Ahmedabad Municipal Corp</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="onboard-lat">Latitude</label>
+              <input type="number" step="0.0001" id="onboard-lat" class="form-input" placeholder="23.0335" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="onboard-lng">Longitude</label>
+              <input type="number" step="0.0001" id="onboard-lng" class="form-input" placeholder="72.5122" required>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="onboard-vendor">Hardware Vendor</label>
+              <select id="onboard-vendor" class="form-select">
+                <option value="Hikvision">Hikvision</option>
+                <option value="Dahua">Dahua</option>
+                <option value="CP Plus">CP Plus</option>
+                <option value="Axis">Axis</option>
+                <option value="Honeywell">Honeywell</option>
+                <option value="Sentinel-MediaMTX">Sentinel-MediaMTX</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="onboard-proto">Stream Protocol</label>
+              <select id="onboard-proto" class="form-select">
+                <option value="RTSP">RTSP</option>
+                <option value="ONVIF">ONVIF</option>
+                <option value="VMS-API">VMS-API</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Camera Name / Description</label>
-          <input type="text" id="onboard-name" class="form-input" placeholder="Pakwan Crossroad ANPR Gate" required>
-        </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div class="form-group">
-            <label class="form-label">District</label>
-            <input type="text" id="onboard-district" class="form-input" placeholder="Ahmedabad" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Department</label>
-            <select id="onboard-dept" class="form-select">
-              <option value="HOME_POLICE">Home Department (Police)</option>
-              <option value="RTO_TRANS">RTO & Transport</option>
-              <option value="FCSCA">Food & Civil Supplies</option>
-              <option value="GMB">Gujarat Maritime Board</option>
-              <option value="AMC">Ahmedabad Municipal Corp</option>
-            </select>
-          </div>
-        </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div class="form-group">
-            <label class="form-label">Latitude</label>
-            <input type="number" step="0.0001" id="onboard-lat" class="form-input" placeholder="23.0335" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Longitude</label>
-            <input type="number" step="0.0001" id="onboard-lng" class="form-input" placeholder="72.5122" required>
-          </div>
-        </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div class="form-group">
-            <label class="form-label">Hardware Vendor</label>
-            <select id="onboard-vendor" class="form-select">
-              <option value="Hikvision">Hikvision</option>
-              <option value="Dahua">Dahua</option>
-              <option value="CP Plus">CP Plus</option>
-              <option value="Axis">Axis</option>
-              <option value="Honeywell">Honeywell</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Stream Protocol</label>
-            <select id="onboard-proto" class="form-select">
-              <option value="RTSP">RTSP</option>
-              <option value="ONVIF">ONVIF</option>
-              <option value="VMS-API">VMS-API</option>
-            </select>
-          </div>
-        </div>
-        <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:12px;">
+        <div class="modal-footer">
           <button type="button" class="quick-tag-btn" onclick="closeModal('onboard-modal')">Cancel</button>
           <button type="submit" class="primary-search-btn">Register Camera</button>
         </div>
@@ -531,47 +681,52 @@
   </div>
 
   <!-- Add Watchlist Suspect Modal -->
-  <div class="modal-backdrop" id="watchlist-modal">
-    <div class="modal-box" style="max-width:600px;">
+  <div class="modal-backdrop" id="watchlist-modal" onclick="closeModalOnBackdrop(event, 'watchlist-modal')">
+    <div class="modal-box" style="max-width:600px;" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <div class="modal-title">Register Suspect Vehicle to Watchlist</div>
+        <div class="modal-title">
+          <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+          <span>Register Suspect Vehicle to Watchlist</span>
+        </div>
         <button class="modal-close-btn" onclick="closeModal('watchlist-modal')">&times;</button>
       </div>
       <form id="watchlist-form" onsubmit="submitAddWatchlist(event)">
-        <div class="form-group">
-          <label class="form-label">Vehicle Registration Number</label>
-          <input type="text" id="wl-plate" class="form-input" placeholder="GJ01XX9999" required style="font-family:var(--font-mono); text-transform:uppercase;">
-        </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="modal-body">
           <div class="form-group">
-            <label class="form-label">Make / Model</label>
-            <input type="text" id="wl-model" class="form-input" placeholder="Maruti Swift" required>
+            <label class="form-label" for="wl-plate">Vehicle Registration Number (HSRP)</label>
+            <input type="text" id="wl-plate" class="form-input" placeholder="GJ01XX9999" required style="font-family:var(--font-mono); text-transform:uppercase;">
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="wl-model">Make / Model</label>
+              <input type="text" id="wl-model" class="form-input" placeholder="Maruti Swift" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="wl-color">Color</label>
+              <input type="text" id="wl-color" class="form-input" placeholder="White" required>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="wl-risk">Risk Level</label>
+              <select id="wl-risk" class="form-select">
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="HIGH" selected>HIGH</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="LOW">LOW</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="wl-fir">Case FIR Number</label>
+              <input type="text" id="wl-fir" class="form-input" placeholder="FIR-2026/0441" required>
+            </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Color</label>
-            <input type="text" id="wl-color" class="form-input" placeholder="White" required>
+            <label class="form-label" for="wl-reason">Reason / Crime Details</label>
+            <textarea id="wl-reason" class="form-input" rows="3" placeholder="Suspect vehicle wanted in connection with..." required></textarea>
           </div>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div class="form-group">
-            <label class="form-label">Risk Level</label>
-            <select id="wl-risk" class="form-select">
-              <option value="CRITICAL">CRITICAL</option>
-              <option value="HIGH" selected>HIGH</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="LOW">LOW</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Case FIR Number</label>
-            <input type="text" id="wl-fir" class="form-input" placeholder="FIR-2026/0441" required>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Reason / Crime Details</label>
-          <textarea id="wl-reason" class="form-input" rows="3" placeholder="Suspect vehicle wanted in connection with..." required></textarea>
-        </div>
-        <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:12px;">
+        <div class="modal-footer">
           <button type="button" class="quick-tag-btn" onclick="closeModal('watchlist-modal')">Cancel</button>
           <button type="submit" class="primary-search-btn">Broadcast to Hotlist</button>
         </div>
@@ -580,30 +735,43 @@
   </div>
 
   <!-- Unified Government Intelligence Dossier Modal -->
-  <div class="modal-backdrop" id="gov-intel-modal">
-    <div class="modal-box" style="max-width:880px;">
+  <div class="modal-backdrop" id="gov-intel-modal" onclick="closeModalOnBackdrop(event, 'gov-intel-modal')">
+    <div class="modal-box" style="max-width:880px;" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <div class="modal-title">Unified Government Intelligence Dossier (VAHAN • SARTHI • eGujCop • AFIS)</div>
+        <div class="modal-title">
+          <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+          <span>National Intelligence Dossier (VAHAN • SARTHI • eGujCop • AFIS)</span>
+        </div>
         <button class="modal-close-btn" onclick="closeModal('gov-intel-modal')">&times;</button>
       </div>
-      <div id="gov-intel-content" style="max-height:550px; overflow-y:auto; padding:10px;">
-        <!-- Rendered dynamically -->
+      <div class="modal-body">
+        <div id="gov-intel-content">
+          <!-- Rendered dynamically by alerts.js -->
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Audit Log Modal -->
-  <div class="modal-backdrop" id="audit-modal">
-    <div class="modal-box" style="max-width:850px;">
+  <div class="modal-backdrop" id="audit-modal" onclick="closeModalOnBackdrop(event, 'audit-modal')">
+    <div class="modal-box" style="max-width:850px;" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <div class="modal-title">Immutable Security & Access Audit Vault</div>
+        <div class="modal-title">
+          <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>Immutable Security &amp; Access Audit Vault</span>
+        </div>
         <button class="modal-close-btn" onclick="closeModal('audit-modal')">&times;</button>
       </div>
-      <div style="max-height:500px; overflow-y:auto;" id="audit-table-content">
-        <!-- Rendered dynamically -->
+      <div class="modal-body">
+        <div id="audit-table-content">
+          <!-- Rendered dynamically by scale_calculator.js -->
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- Real-Time Slide-In Toast Notification Container -->
+  <div class="toast-container" id="toast-container" aria-live="assertive"></div>
 
   <!-- Leaflet GIS Script -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>

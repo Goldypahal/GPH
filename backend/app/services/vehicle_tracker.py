@@ -133,6 +133,7 @@ class VehicleTracker:
             trajectory_points.append(
                 VehicleTrajectoryPoint(
                     sequence=idx + 1,
+                    sighting_id=s.id,
                     camera_id=s.camera_id,
                     camera_name=cam_name,
                     district=district,

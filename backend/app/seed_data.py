@@ -116,8 +116,8 @@ CAMERAS_DATA = [
 
 # Sentinel Camera Grid (cam01 - cam30 on 103.250.160.189:8554)
 SENTINEL_GATEWAY_HOST = "103.250.160.189:8554"
-SENTINEL_EMAIL = "amanpalpathi@gmail.com"
-SENTINEL_PASSWORD = "UDTR-YLX2-9VTC"
+SENTINEL_EMAIL = "goldypahal06@gmail.com"
+SENTINEL_PASSWORD = "PBL8-NRGG-BN8J"
 sentinel_email_enc = urllib.parse.quote(SENTINEL_EMAIL, safe="")
 sentinel_pass_enc = urllib.parse.quote(SENTINEL_PASSWORD, safe="")
 

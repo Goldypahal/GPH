@@ -18,7 +18,7 @@ client = TestClient(app)
 
 EXPECTED_CAM_IDS = [f"cam{i:02d}" for i in range(1, 31)]
 SENTINEL_GATEWAY_HOST = "103.250.160.189:8554"
-AUTH_PREFIX = "amanpalpathi%40gmail.com:UDTR-YLX2-9VTC"
+AUTH_PREFIX = "goldypahal06%40gmail.com:PBL8-NRGG-BN8J"
 
 
 def test_sentinel_30_cameras_exist_in_db():
@@ -62,8 +62,8 @@ def test_sentinel_cameras_health_and_credentials_attached():
             # Check Credentials
             cred = db.query(CameraCredential).filter(CameraCredential.camera_id == c.id).first()
             assert cred is not None, f"Camera {c.logical_camera_id} has no CameraCredential record"
-            assert cred.username == "amanpalpathi@gmail.com"
-            assert cred.encrypted_password == "UDTR-YLX2-9VTC"
+            assert cred.username == "goldypahal06@gmail.com"
+            assert cred.encrypted_password == "PBL8-NRGG-BN8J"
             assert cred.port == 8554
     finally:
         db.close()

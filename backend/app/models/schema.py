@@ -159,6 +159,7 @@ class AlertAction(BaseModel):
 
 class VehicleTrajectoryPoint(BaseModel):
     sequence: int
+    sighting_id: Optional[str] = None
     camera_id: str
     camera_name: str
     district: str

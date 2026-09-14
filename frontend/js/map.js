@@ -1,4 +1,4 @@
-// Leaflet GIS Mapping for Gujarat Statewide CCTV Network
+// Leaflet GIS Mapping for Gujarat Statewide CCTV Network — Production Engine
 let gisMap = null;
 let cameraMarkers = [];
 let trajectoryLayer = null;
@@ -10,25 +10,26 @@ function getTileLayerUrl(theme) {
   if (theme === "dark") {
     return "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
   }
-  // Light / White CartoDB Positron
   return "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 }
 
 window.updateMapTheme = function(theme) {
-  if (!gisMap) return;
-  if (tileLayerInstance) {
+  if (gisMap && tileLayerInstance) {
     gisMap.removeLayer(tileLayerInstance);
+    tileLayerInstance = L.tileLayer(getTileLayerUrl(theme), {
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> | Gujarat Police GIVIN C4I',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(gisMap);
   }
-  tileLayerInstance = L.tileLayer(getTileLayerUrl(theme), {
-    attribution: '&copy; <a href="https://carto.com/">CARTO</a> | Gujarat Police GIVIN C4I',
-    subdomains: 'abcd',
-    maxZoom: 19
-  }).addTo(gisMap);
+  if (window.updateTracerMapTheme) {
+    window.updateTracerMapTheme(theme);
+  }
 };
 
 window.initGISMap = async function() {
   const container = document.getElementById("gis-map-container");
-  if (!container) return;
+  if (!container || gisMap) return;
 
   // Center on Gujarat state (Gandhinagar / Ahmedabad region)
   gisMap = L.map("gis-map-container", {
@@ -40,7 +41,7 @@ window.initGISMap = async function() {
   });
   window.gisMap = gisMap;
 
-  // Initialize Tile Layer according to current active theme
+  // Tile Layer
   const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
   tileLayerInstance = L.tileLayer(getTileLayerUrl(currentTheme), {
     attribution: '&copy; <a href="https://carto.com/">CARTO</a> | Gujarat Police GIVIN C4I',
@@ -48,11 +49,12 @@ window.initGISMap = async function() {
     maxZoom: 19
   }).addTo(gisMap);
 
-  // Fetch all 50 cameras
+  // Fetch cameras
   try {
     const res = await fetch("/api/cameras");
     if (res.ok) {
       allCamerasData = await res.json();
+      window.allCamerasData = allCamerasData;
       renderCameraMarkers(allCamerasData);
       renderCameraSidebarList(allCamerasData);
     }
@@ -62,9 +64,9 @@ window.initGISMap = async function() {
 };
 
 function createCameraIcon(status, hasAlert = false) {
-  let color = "#0ea5e9"; // Cyan Active
-  if (status === "DEGRADED") color = "#f59e0b"; // Amber Degraded
-  if (hasAlert) color = "#ef4444"; // Red Alert
+  let color = "#0284c7"; // Cyan Active
+  if (status === "DEGRADED") color = "#d97706"; // Amber Degraded
+  if (hasAlert) color = "#dc2626"; // Red Alert
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28">
@@ -84,7 +86,6 @@ function createCameraIcon(status, hasAlert = false) {
 }
 
 function renderCameraMarkers(cameras) {
-  // Clear existing
   cameraMarkers.forEach(m => gisMap.removeLayer(m));
   cameraMarkers = [];
 
@@ -97,17 +98,17 @@ function renderCameraMarkers(cameras) {
 
     const latencyDisplay = cam.latency_ms != null ? `${cam.latency_ms}ms` : 'Awaiting Ping';
     const popupContent = `
-      <div style="font-family:sans-serif; color:#0f172a; min-width:210px;">
-        <div style="font-weight:bold; font-size:13px; color:#0369a1; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-bottom:6px;">
+      <div style="font-family:var(--font-sans, sans-serif); color:#0f172a; min-width:210px; padding:4px;">
+        <div style="font-weight:700; font-size:13px; color:#0369a1; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-bottom:6px;">
           ${cam.name}
         </div>
-        <div style="font-size:11px; margin-bottom:3px;"><strong>Code:</strong> ${cam.logical_camera_id}</div>
+        <div style="font-size:11px; margin-bottom:3px;"><strong>Code:</strong> <span style="font-family:monospace;">${cam.logical_camera_id}</span></div>
         <div style="font-size:11px; margin-bottom:3px;"><strong>District:</strong> ${cam.district}</div>
         <div style="font-size:11px; margin-bottom:3px;"><strong>Location:</strong> ${cam.location_name}</div>
         <div style="font-size:11px; margin-bottom:3px;"><strong>Hardware:</strong> ${cam.vendor} ${cam.resolution} (${cam.protocol})</div>
-        <div style="font-size:11px; margin-bottom:8px;"><strong>Status:</strong> <span style="color:${cam.status === 'ACTIVE' ? '#16a34a' : '#ea580c'}; font-weight:bold;">${cam.status}</span> | Latency: ${latencyDisplay}</div>
-        <a href="javascript:void(0)" onclick="focusVideoWallCamera('${cam.logical_camera_id}')" style="display:inline-flex; align-items:center; gap:4px; background:#0284c7; color:#fff; text-decoration:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold;">
-          <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg> View Live Feed
+        <div style="font-size:11px; margin-bottom:8px;"><strong>Status:</strong> <span style="color:${cam.status === 'ACTIVE' ? '#059669' : '#d97706'}; font-weight:bold;">${cam.status}</span> | Latency: ${latencyDisplay}</div>
+        <a href="javascript:void(0)" onclick="focusVideoWallCamera('${cam.logical_camera_id}')" style="display:inline-flex; align-items:center; gap:4px; background:#0284c7; color:#fff; text-decoration:none; padding:4px 10px; border-radius:4px; font-size:11px; font-weight:bold;">
+          <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg> View Live Stream
         </a>
       </div>
     `;
@@ -123,34 +124,48 @@ function renderCameraSidebarList(cameras) {
   if (!container) return;
 
   container.innerHTML = cameras.map(cam => `
-    <div class="alert-item-card" style="border-left-color:${cam.status === 'ACTIVE' ? '#0ea5e9' : '#f59e0b'}; padding:8px 12px; margin-bottom:8px; cursor:pointer;" onclick="panToCamera(${cam.lat}, ${cam.lng}, '${cam.name}')">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-weight:bold; font-size:0.8rem; color:#fff;">${cam.logical_camera_id}</span>
-        <span style="font-size:0.68rem; color:${cam.status === 'ACTIVE' ? '#34d399' : '#fbbf24'}; font-family:var(--font-mono);">${cam.status}</span>
+    <div class="camera-card" onclick="panToCamera(${cam.lat}, ${cam.lng}, '${cam.name}')">
+      <div class="camera-card-top">
+        <span class="camera-card-code">${cam.logical_camera_id}</span>
+        <span style="font-size:0.68rem; font-weight:700; color:${cam.status === 'ACTIVE' ? 'var(--accent-green)' : 'var(--accent-amber)'}; font-family:var(--font-mono);">${cam.status}</span>
       </div>
-      <div style="font-size:0.75rem; color:var(--text-muted); margin:2px 0;">${cam.name}</div>
-      <div style="font-size:0.7rem; color:var(--text-dim); display:flex; justify-content:space-between;">
-        <span>${cam.district}</span>
+      <div class="camera-card-title">${cam.name}</div>
+      <div class="camera-card-meta">
+        <span>${cam.district} District</span>
         <span>${cam.vendor} (${cam.protocol})</span>
       </div>
     </div>
   `).join("");
 }
 
-function panToCamera(lat, lng, name) {
+window.panToCamera = function(lat, lng, name) {
   if (gisMap) {
     gisMap.setView([lat, lng], 13, { animate: true });
-    // Find marker and open popup
     const marker = cameraMarkers.find(m => {
       const pos = m.getLatLng();
       return Math.abs(pos.lat - lat) < 0.0001 && Math.abs(pos.lng - lng) < 0.0001;
     });
     if (marker) marker.openPopup();
   }
-}
+};
 
-function filterMapByDistrict(district) {
+window.focusMapOnCamera = function(logicalCode) {
+  if (!allCamerasData || allCamerasData.length === 0) return;
+  const cam = allCamerasData.find(c => c.logical_camera_id === logicalCode);
+  if (cam) {
+    panToCamera(cam.lat, cam.lng, cam.name);
+  }
+};
+
+window.filterMapByDistrict = function(district) {
   if (!gisMap) return;
+  
+  // Update button active state
+  const btns = document.querySelectorAll("#gis-view .quick-tag-btn");
+  btns.forEach(b => b.classList.remove("active"));
+  const clickedBtn = Array.from(btns).find(b => b.textContent.toLowerCase().includes(district.toLowerCase()));
+  if (clickedBtn) clickedBtn.classList.add("active");
+
   if (district === "all") {
     gisMap.setView([22.45, 71.60], 7);
     renderCameraMarkers(allCamerasData);
@@ -173,9 +188,9 @@ function filterMapByDistrict(district) {
   if (center) {
     gisMap.setView([center[0], center[1]], center[2], { animate: true });
   }
-}
+};
 
-function filterCameraList() {
+window.filterCameraList = function() {
   const query = document.getElementById("camera-filter-input").value.toLowerCase();
   const filtered = allCamerasData.filter(c => 
     c.name.toLowerCase().includes(query) ||
@@ -184,24 +199,21 @@ function filterCameraList() {
     c.vendor.toLowerCase().includes(query)
   );
   renderCameraSidebarList(filtered);
-}
+};
 
 // Draw reconstructed vehicle trajectory on GIS map
-window.drawTrajectoryOnMap = function(trajectoryPoints) {
+window.drawTrajectoryOnMap = function(trajectoryPoints, autoFit = true) {
   if (!gisMap || !trajectoryPoints || trajectoryPoints.length === 0) return;
 
-  // Clear previous trajectory
   if (trajectoryLayer) gisMap.removeLayer(trajectoryLayer);
   if (animatedVehicleMarker) gisMap.removeLayer(animatedVehicleMarker);
 
   const latlngs = trajectoryPoints.map(p => [p.lat, p.lng]);
-
-  // Create trajectory group
   const group = L.featureGroup();
 
-  // Draw Glowing Route Polyline
+  // Glowing Route Polyline
   const routeLine = L.polyline(latlngs, {
-    color: "#0ea5e9",
+    color: "#0284c7",
     weight: 5,
     opacity: 0.85,
     dashArray: "10, 8",
@@ -209,7 +221,7 @@ window.drawTrajectoryOnMap = function(trajectoryPoints) {
   });
   group.addLayer(routeLine);
 
-  // Add numbered waypoint nodes for each checkpoint
+  // Numbered Waypoints
   trajectoryPoints.forEach(p => {
     const nodeIcon = L.divIcon({
       html: `<div style="background:#0284c7; color:#fff; border:2px solid #fff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px; box-shadow:0 0 10px #0284c7;">${p.sequence}</div>`,
@@ -234,10 +246,11 @@ window.drawTrajectoryOnMap = function(trajectoryPoints) {
   group.addTo(gisMap);
   trajectoryLayer = group;
 
-  // Fit bounds to entire route
-  gisMap.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+  if (autoFit) {
+    gisMap.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+  }
 
-  // Add vehicle marker at start position
+  // Car icon
   const carIcon = L.divIcon({
     html: `<div style="background:#ef4444; border:2px solid #fff; border-radius:4px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 10px rgba(239,68,68,0.5);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg></div>`,
     className: "car-anim-pin",
@@ -247,7 +260,6 @@ window.drawTrajectoryOnMap = function(trajectoryPoints) {
 
   animatedVehicleMarker = L.marker(latlngs[0], { icon: carIcon }).addTo(gisMap);
 
-  // Stepwise progression along checkpoints
   let step = 0;
   const interval = setInterval(() => {
     step++;
@@ -260,11 +272,7 @@ window.drawTrajectoryOnMap = function(trajectoryPoints) {
 };
 
 // ==========================================================================
-// LIVE PURSUIT MODE: Real-time tracking blip for a target vehicle.
-// Polls /api/tracking/live/{plate}, which dead-reckons a moving position
-// from the vehicle's last two confirmed ANPR sightings (heading + speed),
-// and displays a marker + heading cone + predicted-next-camera
-// pin on the GIS map, alongside a live HUD readout.
+// LIVE PURSUIT MODE: Real-time Dead-Reckoned Tracking Blip & Heading Cone
 // ==========================================================================
 let livePursuitState = {
   active: false,
@@ -275,17 +283,19 @@ let livePursuitState = {
   trailLine: null
 };
 
-function toggleLivePursuit() {
+window.toggleLivePursuit = function() {
   if (livePursuitState.active) {
     stopLivePursuit();
     return;
   }
   if (typeof currentTrajectoryData === "undefined" || !currentTrajectoryData || !currentTrajectoryData.plate_number) {
-    alert("Track a vehicle's journey first, then start Live Track.");
+    if (window.showToast) {
+      window.showToast("TRACKING REQUIRED", "Track a vehicle journey first, then start Live Track.", "HIGH");
+    }
     return;
   }
   startLivePursuit(currentTrajectoryData.plate_number);
-}
+};
 
 function startLivePursuit(plate) {
   livePursuitState.active = true;
@@ -300,11 +310,15 @@ function startLivePursuit(plate) {
   document.getElementById("lp-hud-plate").textContent = plate;
   document.getElementById("live-pursuit-hud").style.display = "block";
 
-  // Jump to the GIS map view so the officer sees the live blip immediately.
+  // Focus GIS Map view
   const tabGis = document.getElementById("tab-gis");
   if (tabGis) tabGis.click();
 
-  pollLivePursuit(); // immediate first fetch
+  if (window.showToast) {
+    window.showToast("LIVE PURSUIT ACTIVATED", `Dead-reckoned telemetry enabled for target ${plate}.`, "CRITICAL");
+  }
+
+  pollLivePursuit();
   livePursuitState.pollTimer = setInterval(pollLivePursuit, 2500);
 }
 
@@ -315,8 +329,8 @@ function stopLivePursuit() {
 
   const btn = document.getElementById("live-pursuit-toggle-btn");
   if (btn) {
-    btn.innerHTML = `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>LIVE TRACK ON MAP`;
-    btn.style.background = "#dc2626";
+    btn.innerHTML = `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>LIVE TRACK ON MAP`;
+    btn.style.background = "var(--accent-red)";
   }
 
   document.getElementById("live-pursuit-hud").style.display = "none";
@@ -349,13 +363,12 @@ async function pollLivePursuit() {
 function renderLivePursuitPosition(pos) {
   const isStale = pos.status === "STALE";
 
-  // --- HUD readout ---
   const pill = document.getElementById("lp-hud-status-pill");
   pill.textContent = isStale ? "SIGNAL STALE" : "LIVE (PREDICTED)";
   pill.className = "lp-hud-status-pill " + (isStale ? "lp-stale-pill" : "lp-live");
 
   const dot = document.getElementById("lp-status-dot");
-  dot.style.background = isStale ? "#f59e0b" : "#ef4444";
+  dot.style.background = isStale ? "var(--accent-amber)" : "var(--accent-red)";
 
   document.getElementById("lp-hud-speed").textContent = `${pos.speed_kmh} km/h`;
   document.getElementById("lp-hud-heading").textContent = `${compassFromDeg(pos.heading_deg)} (${pos.heading_deg}°)`;
@@ -370,15 +383,15 @@ function renderLivePursuitPosition(pos) {
 
   if (!gisMap) return;
 
-  // --- Trail (line of recent confirmed checkpoints) ---
+  // Trail
   if (livePursuitState.trailLine) gisMap.removeLayer(livePursuitState.trailLine);
   if (pos.trail && pos.trail.length > 1) {
     livePursuitState.trailLine = L.polyline(pos.trail, {
-      color: "#ef4444", weight: 3, opacity: 0.4, dashArray: "4, 6"
+      color: "#dc2626", weight: 3, opacity: 0.45, dashArray: "4, 6"
     }).addTo(gisMap);
   }
 
-  // --- Live blip with heading cone ---
+  // Live blip with directional heading cone
   const html = `
     <div class="lp-vehicle-marker-wrap">
       <div class="lp-heading-cone" style="transform:rotate(${pos.heading_deg}deg);"></div>
@@ -397,7 +410,7 @@ function renderLivePursuitPosition(pos) {
     livePursuitState.marker.setLatLng([pos.lat, pos.lng]);
   }
   livePursuitState.marker.bindPopup(`
-    <div style="font-family:sans-serif; color:#0f172a; min-width:200px;">
+    <div style="font-family:sans-serif; color:#0f172a; min-width:200px; padding:4px;">
       <div style="font-weight:bold; color:#dc2626; display:flex; align-items:center; gap:6px;">
         <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
         ${pos.plate_number}: ${isStale ? 'SIGNAL STALE' : 'LIVE PREDICTED'}
@@ -407,7 +420,7 @@ function renderLivePursuitPosition(pos) {
     </div>
   `);
 
-  // --- Predicted next camera pin ---
+  // Predicted next camera pin
   if (livePursuitState.nextCamMarker) gisMap.removeLayer(livePursuitState.nextCamMarker);
   if (pos.predicted_next_camera && pos.predicted_next_lat) {
     const camIcon = L.divIcon({
