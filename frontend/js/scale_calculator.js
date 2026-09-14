@@ -124,7 +124,7 @@ async function viewAuditTrail() {
                 <td style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-dim);">
                   ${new Date(l.timestamp).toLocaleString("en-IN")}
                 </td>
-                <td style="font-weight:600; color:#fff;">${l.user_id}</td>
+                <td style="font-weight:600; color:var(--text-main);">${l.user_id}</td>
                 <td><span class="quick-tag-btn" style="font-size:0.68rem;">${l.action}</span></td>
                 <td style="font-family:var(--font-mono); font-size:0.75rem;">${l.resource}</td>
                 <td style="font-family:var(--font-mono); font-size:0.7rem; color:var(--accent-cyan);">

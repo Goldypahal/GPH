@@ -4,6 +4,27 @@ let cameraMarkers = [];
 let trajectoryLayer = null;
 let animatedVehicleMarker = null;
 let allCamerasData = [];
+let tileLayerInstance = null;
+
+function getTileLayerUrl(theme) {
+  if (theme === "dark") {
+    return "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+  }
+  // Light / White CartoDB Positron
+  return "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+}
+
+window.updateMapTheme = function(theme) {
+  if (!gisMap) return;
+  if (tileLayerInstance) {
+    gisMap.removeLayer(tileLayerInstance);
+  }
+  tileLayerInstance = L.tileLayer(getTileLayerUrl(theme), {
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a> | Gujarat Police GIVIN C4I',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(gisMap);
+};
 
 window.initGISMap = async function() {
   const container = document.getElementById("gis-map-container");
@@ -19,8 +40,9 @@ window.initGISMap = async function() {
   });
   window.gisMap = gisMap;
 
-  // Tactical Dark Tile Layer (CartoDB Dark Matter)
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+  // Initialize Tile Layer according to current active theme
+  const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+  tileLayerInstance = L.tileLayer(getTileLayerUrl(currentTheme), {
     attribution: '&copy; <a href="https://carto.com/">CARTO</a> | Gujarat Police GIVIN C4I',
     subdomains: 'abcd',
     maxZoom: 19

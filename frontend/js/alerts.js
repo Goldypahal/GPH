@@ -157,14 +157,14 @@ async function openGovIntelModal(plate) {
     const badgeColor = isCritical ? '#ef4444' : (isHigh ? '#f59e0b' : '#34d399');
 
     container.innerHTML = `
-      <div style="background:#0b1329; border:1px solid var(--border-color); border-radius:4px; padding:16px; margin-bottom:16px;">
+      <div style="background:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:6px; padding:16px; margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
           <div>
-            <div style="font-size:1.3rem; font-weight:800; font-family:var(--font-mono); color:#fff;">${data.normalized_plate}</div>
+            <div style="font-size:1.3rem; font-weight:800; font-family:var(--font-mono); color:var(--text-main);">${data.normalized_plate}</div>
             <div style="font-size:0.75rem; color:var(--text-muted);">Source Signature: <span style="font-family:var(--font-mono); color:var(--accent-cyan);">${data.composite_signature_hash.slice(0, 24)}...</span></div>
           </div>
           <div style="text-align:right;">
-            <div style="background:${badgeColor}; color:#000; font-weight:bold; padding:4px 12px; border-radius:4px; font-size:0.85rem; display:inline-block;">
+            <div style="background:${badgeColor}; color:#fff; font-weight:bold; padding:4px 12px; border-radius:4px; font-size:0.85rem; display:inline-block;">
               RISK: ${data.composite_risk_score}/100 • ${data.threat_assessment}
             </div>
           </div>
@@ -173,68 +173,68 @@ async function openGovIntelModal(plate) {
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
         <!-- VAHAN Panel -->
-        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:14px;">
+        <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:6px; padding:14px;">
           <div style="font-weight:bold; color:var(--accent-cyan); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
               VAHAN 4.0 (MoRTH)
             </span>
-            <span style="font-size:0.7rem; font-weight:bold; color:${data.vahan_record.stolen_vehicle_alert ? '#ef4444' : '#34d399'};">
+            <span style="font-size:0.7rem; font-weight:bold; color:${data.vahan_record.stolen_vehicle_alert ? '#ef4444' : '#10b981'};">
               ${data.vahan_record.stolen_vehicle_alert ? '[STOLEN]' : '[CLEAR]'}
             </span>
           </div>
-          <div style="font-size:0.8rem; line-height:1.6; color:#cbd5e1;">
-            <div><strong>Owner:</strong> ${data.vahan_record.owner_name}</div>
-            <div><strong>Vehicle:</strong> ${data.vahan_record.make_model} (${data.vahan_record.vehicle_class})</div>
-            <div><strong>RTO:</strong> ${data.vahan_record.registering_authority}</div>
-            <div><strong>Chassis:</strong> <span style="font-family:var(--font-mono); font-size:0.75rem;">${data.vahan_record.chassis_number}</span></div>
+          <div style="font-size:0.8rem; line-height:1.6; color:var(--text-muted);">
+            <div><strong style="color:var(--text-main);">Owner:</strong> ${data.vahan_record.owner_name}</div>
+            <div><strong style="color:var(--text-main);">Vehicle:</strong> ${data.vahan_record.make_model} (${data.vahan_record.vehicle_class})</div>
+            <div><strong style="color:var(--text-main);">RTO:</strong> ${data.vahan_record.registering_authority}</div>
+            <div><strong style="color:var(--text-main);">Chassis:</strong> <span style="font-family:var(--font-mono); font-size:0.75rem;">${data.vahan_record.chassis_number}</span></div>
           </div>
         </div>
 
         <!-- eGujCop / CCTNS Panel -->
-        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:14px;">
+        <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:6px; padding:14px;">
           <div style="font-weight:bold; color:var(--accent-red); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
               eGujCop / CCTNS Crime Records
             </span>
-            <span style="font-size:0.7rem; font-weight:bold; color:${data.egujcop_record.active_lookout_notice ? '#ef4444' : '#34d399'};">
+            <span style="font-size:0.7rem; font-weight:bold; color:${data.egujcop_record.active_lookout_notice ? '#ef4444' : '#10b981'};">
               ${data.egujcop_record.active_lookout_notice ? '[ACTIVE LOOKOUT]' : '[NO WARRANT]'}
             </span>
           </div>
-          <div style="font-size:0.8rem; line-height:1.6; color:#cbd5e1;">
-            <div><strong>Warrants:</strong> ${data.egujcop_record.warrant_status}</div>
-            <div><strong>Criminal History:</strong> ${data.egujcop_record.fir_history ? data.egujcop_record.fir_history.join(", ") : "None"}</div>
-            <div><strong>Flag:</strong> ${data.egujcop_record.stolen_vehicle_record ? "Reported Stolen" : "Clear"}</div>
-            <div><strong>Court Ref:</strong> <span style="font-family:var(--font-mono); font-size:0.75rem;">CR-2026/AHM-SEC120B</span></div>
+          <div style="font-size:0.8rem; line-height:1.6; color:var(--text-muted);">
+            <div><strong style="color:var(--text-main);">Warrants:</strong> ${data.egujcop_record.warrant_status}</div>
+            <div><strong style="color:var(--text-main);">Criminal History:</strong> ${data.egujcop_record.fir_history ? data.egujcop_record.fir_history.join(", ") : "None"}</div>
+            <div><strong style="color:var(--text-main);">Flag:</strong> ${data.egujcop_record.stolen_vehicle_record ? "Reported Stolen" : "Clear"}</div>
+            <div><strong style="color:var(--text-main);">Court Ref:</strong> <span style="font-family:var(--font-mono); font-size:0.75rem;">CR-2026/AHM-SEC120B</span></div>
           </div>
         </div>
 
         <!-- SARTHI DL Panel -->
-        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:14px;">
+        <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:6px; padding:14px;">
           <div style="font-weight:bold; color:var(--accent-amber); margin-bottom:8px; display:inline-flex; align-items:center; gap:6px;">
             <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
             SARTHI (Driver License)
           </div>
-          <div style="font-size:0.8rem; line-height:1.6; color:#cbd5e1;">
-            <div><strong>License No:</strong> <span style="font-family:var(--font-mono);">${data.sarathi_record.license_number}</span></div>
-            <div><strong>Holder:</strong> ${data.sarathi_record.driver_name}</div>
-            <div><strong>Status:</strong> <span style="color:${data.sarathi_record.license_status === 'VALID' ? '#34d399' : '#ef4444'};">${data.sarathi_record.license_status}</span></div>
-            <div><strong>Disqualified:</strong> ${data.sarathi_record.disqualified ? "YES" : "No"}</div>
+          <div style="font-size:0.8rem; line-height:1.6; color:var(--text-muted);">
+            <div><strong style="color:var(--text-main);">License No:</strong> <span style="font-family:var(--font-mono);">${data.sarathi_record.license_number}</span></div>
+            <div><strong style="color:var(--text-main);">Holder:</strong> ${data.sarathi_record.driver_name}</div>
+            <div><strong style="color:var(--text-main);">Status:</strong> <span style="color:${data.sarathi_record.license_status === 'VALID' ? '#10b981' : '#ef4444'}; font-weight:600;">${data.sarathi_record.license_status}</span></div>
+            <div><strong style="color:var(--text-main);">Disqualified:</strong> ${data.sarathi_record.disqualified ? "YES" : "No"}</div>
           </div>
         </div>
 
         <!-- AFIS Biometrics Panel -->
-        <div style="background:#080d18; border:1px solid var(--border-color); border-radius:4px; padding:14px;">
+        <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:6px; padding:14px;">
           <div style="font-weight:bold; color:var(--accent-cyan); margin-bottom:8px; display:inline-flex; align-items:center; gap:6px;">
             <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2"></path></svg>
             AFIS / NAFIS Biometrics
           </div>
-          <div style="font-size:0.8rem; line-height:1.6; color:#cbd5e1;">
-            <div><strong>Biometric Match:</strong> <span style="color:${data.afis_record.match_found ? '#ef4444' : '#34d399'}; font-weight:bold;">${data.afis_record.match_found ? 'MATCH FOUND' : 'NO RECORD'}</span></div>
-            <div><strong>Suspect:</strong> ${data.afis_record.suspect_name || 'N/A'}</div>
-            <div><strong>Confidence:</strong> ${data.afis_record.match_confidence ? (data.afis_record.match_confidence * 100).toFixed(1) + '%' : 'N/A'}</div>
-            <div><strong>Known Alias:</strong> ${data.afis_record.known_aliases ? data.afis_record.known_aliases.join(", ") : "None"}</div>
+          <div style="font-size:0.8rem; line-height:1.6; color:var(--text-muted);">
+            <div><strong style="color:var(--text-main);">Biometric Match:</strong> <span style="color:${data.afis_record.match_found ? '#ef4444' : '#10b981'}; font-weight:bold;">${data.afis_record.match_found ? 'MATCH FOUND' : 'NO RECORD'}</span></div>
+            <div><strong style="color:var(--text-main);">Suspect:</strong> ${data.afis_record.suspect_name || 'N/A'}</div>
+            <div><strong style="color:var(--text-main);">Confidence:</strong> ${data.afis_record.match_confidence ? (data.afis_record.match_confidence * 100).toFixed(1) + '%' : 'N/A'}</div>
+            <div><strong style="color:var(--text-main);">Known Alias:</strong> ${data.afis_record.known_aliases ? data.afis_record.known_aliases.join(", ") : "None"}</div>
           </div>
         </div>
       </div>
