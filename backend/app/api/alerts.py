@@ -51,29 +51,41 @@ def take_alert_action(
     db: Session = Depends(get_db)
 ):
     """
-    Updates alert lifecycle status: ACKNOWLEDGED, INVESTIGATING, RESOLVED, FALSE_POSITIVE.
-    Dispatches police patrol units (e.g. PCR Vans, Highway Interceptors).
+    Updates alert lifecycle status: ACKNOWLEDGED, UNDER_REVIEW, DISPATCHED, RESOLVED, FALSE_POSITIVE, ESCALATED.
+    Dispatches police patrol units (e.g. PCR Vans, Highway Interceptors) and records mandatory officer justification.
     """
     alert = db.query(Alert).filter((Alert.id == alert_id) | (Alert.alert_uid == alert_id)).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
 
+    # Enforce review justification on high-impact dispositions
+    if action.status in ("FALSE_POSITIVE", "ESCALATED") and not (action.remarks or action.review_reason):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Officer remarks or review_reason are mandatory when marking an alert as {action.status}"
+        )
+
+    now = datetime.now(timezone.utc)
     alert.status = action.status
     if action.remarks:
-        alert.remarks = f"{alert.remarks or ''} | {action.remarks}"
+        alert.remarks = f"{alert.remarks or ''} | {action.remarks}".strip(" |")
+    if action.review_reason:
+        alert.review_reason = action.review_reason
     if action.dispatched_unit:
         alert.dispatched_unit = action.dispatched_unit
     
     alert.acknowledged_by = action.operator_name
-    alert.acknowledged_at = datetime.now(timezone.utc)
+    alert.acknowledged_at = now
+    alert.reviewing_officer = action.operator_name
+    alert.updated_at = now
     
     # Audit trail
     audit = AuditLog(
         user_id=action.operator_name or "OPERATOR",
         action=f"ALERT_{action.status}",
         resource=f"ALERT:{alert.alert_uid}",
-        details_json=f"Status changed to {action.status}. Unit: {action.dispatched_unit}. Remarks: {action.remarks}",
-        signature_hash=generate_sha256_hash(f"{alert.alert_uid}:{action.status}".encode())
+        details_json=f"Status changed to {action.status}. Unit: {action.dispatched_unit}. Officer: {action.operator_name}. Reason: {action.review_reason or action.remarks}",
+        signature_hash=generate_sha256_hash(f"{alert.alert_uid}:{action.status}:{action.operator_name}".encode())
     )
     db.add(audit)
     db.commit()
@@ -87,6 +99,10 @@ def take_alert_action(
         res.location_name = cam.location_name
         res.lat = cam.lat
         res.lng = cam.lng
+    if alert.sighting:
+        res.vehicle_type = alert.sighting.vehicle_type
+        res.vehicle_color = alert.sighting.vehicle_color
+        res.evidence_uri = alert.sighting.evidence_uri
     return res
 
 @router.post("/simulate")
@@ -98,6 +114,7 @@ def simulate_live_detection_alert(
     """
     Simulates a live high-priority detection event on a camera feed, triggering
     instant ANPR OCR, watchlist matching, and WebSocket / audio alarm dispatch.
+    Explicitly tags event provenance as SIMULATION.
     """
     if settings.ENVIRONMENT == "production":
         raise HTTPException(
@@ -126,7 +143,8 @@ def simulate_live_detection_alert(
         speed_kmh=64.0,
         direction="Westbound",
         evidence_uri=f"/api/analytics/evidence/{img_hash[:16]}.jpg",
-        evidence_hash=img_hash
+        evidence_hash=img_hash,
+        processing_provenance="SIMULATION"
     )
     db.add(sighting)
     db.flush()
@@ -146,9 +164,12 @@ def simulate_live_detection_alert(
         risk_level=risk,
         status="NEW",
         remarks=f"HOTLIST HIT! Detected at {cam.name} ({cam.district}). Reason: {reason}",
-        dispatched_unit="Highway Patrol Team 04 - Intercept Alert Dispatched"
+        dispatched_unit="Highway Patrol Team 04 - Intercept Alert Dispatched",
+        processing_provenance="SIMULATION"
     )
     db.add(new_alert)
+    db.commit()
+    db.refresh(new_alert)
     db.commit()
     db.refresh(new_alert)
 

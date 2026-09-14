@@ -105,9 +105,21 @@ class TravelAnomalyEngine:
                 anomalies.append({
                     "anomaly_id": f"ANOM-CLONE-{uuid.uuid4().hex[:8]}",
                     "anomaly_type": "CLONED_PLATE",
+                    "investigative_classification": "SUSPICIOUS_MOVEMENT",
                     "plate_number": s1.plate_text,
                     "severity": "CRITICAL",
                     "description": clone_reason,
+                    "potential_causes": [
+                        "likely cloned plate",
+                        "timestamp error",
+                        "OCR error",
+                        "camera coordinate error",
+                        "duplicate event",
+                        "data ingestion delay"
+                    ],
+                    "evidentiary_disclaimer": (
+                        "Investigative lead only; not definitive judicial proof of cloned plate without physical chassis/VIN inspection."
+                    ),
                     "camera_a_id": cam1.id,
                     "camera_a_name": cam1.name,
                     "camera_b_id": cam2.id,
@@ -178,7 +190,7 @@ class TravelAnomalyEngine:
             plate_text=plate,
             risk_level="CRITICAL",
             status="NEW",
-            remarks=f"CLONED_PLATE_DETECTED: {description}"
+            remarks=f"CLONED_PLATE_DETECTED [SUSPICIOUS_MOVEMENT]: {description}"
         )
         db.add(alert)
         db.commit()

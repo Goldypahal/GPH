@@ -336,10 +336,16 @@ class Alert(Base):
     camera_id = Column(String(36), ForeignKey("cameras.id"), nullable=False)
     plate_text = Column(String(50), nullable=False)
     risk_level = Column(String(50), default="HIGH")
-    status = Column(String(50), default="NEW") # NEW, ACKNOWLEDGED, DISPATCHED, RESOLVED, DISMISSED
+    status = Column(String(50), default="NEW") # NEW, ACKNOWLEDGED, UNDER_REVIEW, DISPATCHED, RESOLVED, FALSE_POSITIVE, ESCALATED
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    acknowledged_by = Column(String(100), nullable=True)
+    acknowledged_at = Column(DateTime, nullable=True)
+    review_reason = Column(Text, nullable=True)
+    reviewing_officer = Column(String(100), nullable=True)
     remarks = Column(Text, nullable=True)
     dispatched_unit = Column(String(100), nullable=True)
+    processing_provenance = Column(String(50), default="PHYSICAL_STREAM")
 
     watchlist = relationship("Watchlist", back_populates="alerts")
     sighting = relationship("VehicleSighting", back_populates="alerts")

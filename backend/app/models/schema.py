@@ -126,18 +126,36 @@ class AlertOut(BaseModel):
     risk_level: str
     status: str
     remarks: Optional[str] = None
+    review_reason: Optional[str] = None
     dispatched_unit: Optional[str] = None
     acknowledged_by: Optional[str] = None
+    acknowledged_at: Optional[datetime] = None
+    reviewing_officer: Optional[str] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
     evidence_uri: Optional[str] = None
+    processing_provenance: Optional[str] = "PHYSICAL_STREAM"
     class Config:
         from_attributes = True
 
 class AlertAction(BaseModel):
     status: str
     remarks: Optional[str] = None
+    review_reason: Optional[str] = None
     dispatched_unit: Optional[str] = None
     operator_name: Optional[str] = "Inspector V. Patel (Control Room 1)"
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        valid_statuses = {
+            "NEW", "ACKNOWLEDGED", "UNDER_REVIEW", "DISPATCHED",
+            "RESOLVED", "FALSE_POSITIVE", "ESCALATED",
+            "INVESTIGATING", "DISMISSED"
+        }
+        if v.upper() not in valid_statuses:
+            raise ValueError(f"Invalid alert status '{v}'. Permitted: {', '.join(sorted(valid_statuses))}")
+        return v.upper()
 
 class VehicleTrajectoryPoint(BaseModel):
     sequence: int
@@ -238,7 +256,7 @@ class ContainmentPerimeterOut(BaseModel):
 
 class TravelAnomalyOut(BaseModel):
     anomaly_id: str
-    anomaly_type: str # "CLONED_PLATE" | "EXCESSIVE_SPEED" | "ROUTE_DETOUR"
+    anomaly_type: str # "SUSPICIOUS_MOVEMENT" | "CLONED_PLATE" | "EXCESSIVE_SPEED" | "ROUTE_DETOUR"
     plate_number: str
     severity: str # "CRITICAL" | "WARNING" | "INFO"
     description: str
@@ -252,6 +270,10 @@ class TravelAnomalyOut(BaseModel):
     timestamp_a: datetime
     timestamp_b: datetime
     alert_raised: bool
+    potential_causes: Optional[List[str]] = Field(
+        default_factory=lambda: ["likely cloned plate", "timestamp error", "OCR error", "camera coordinate error", "duplicate event", "data ingestion delay"]
+    )
+    admissibility_disclaimer: Optional[str] = "Investigative lead only; not definitive proof of plate duplication without vehicle chassis/VIN verification."
 
 class ClonedPlateAlertOut(BaseModel):
     plate_number: str
@@ -262,6 +284,10 @@ class ClonedPlateAlertOut(BaseModel):
     implied_speed_kmh: float
     detected_at: datetime
     action_required: str
+    potential_causes: Optional[List[str]] = Field(
+        default_factory=lambda: ["likely cloned plate", "timestamp error", "OCR error", "camera coordinate error", "duplicate event", "data ingestion delay"]
+    )
+    evidentiary_standard: Optional[str] = "SUSPICIOUS_MOVEMENT_INVESTIGATIVE_LEAD"
 
 class CameraGraphEdgeOut(BaseModel):
     from_camera_id: str
