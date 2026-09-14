@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gswan-ipsec-gateway
+  namespace: givin-system
+  labels:
+    app.kubernetes.io/name: gswan-ipsec-gateway
+    app.kubernetes.io/component: networking
+    app.kubernetes.io/part-of: givin-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gswan-ipsec-gateway
+  template:
+    metadata:
+      labels:
+        app: gswan-ipsec-gateway
+    spec:
+      containers:
+      - name: strongswan
+        image: strongswan/strongswan:5.9.11
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN", "NET_RAW"]
+        env:
+        - name: GSWAN_PRIMARY_GW
+          value: "10.100.1.1"
+        - name: GSWAN_SECONDARY_GW
+          value: "10.100.2.1"
+        - name: GSWAN_LOCAL_SUBNET
+          value: "10.240.0.0/16"
+        volumeMounts:
+        - name: ipsec-config
+          mountPath: /etc/ipsec.conf
+          subPath: ipsec.conf
+        - name: ipsec-secrets
+          mountPath: /etc/ipsec.secrets
+          subPath: ipsec.secrets
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+      volumes:
+      - name: ipsec-config
+        configMap:
+          name: gswan-ipsec-config
+      - name: ipsec-secrets
+        secret:
+          secretName: gswan-ipsec-secrets
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gswan-ipsec-config
+  namespace: givin-system
+data:
+  ipsec.conf: |
+    config setup
+        charondebug="ike 1, knl 1, cfg 1, net 1, esp 1"
+        uniqueids=yes
+
+    conn %default
+        keyexchange=ikev2
+        ike=aes256gcm16-sha384-modp2048!
+        esp=aes256gcm16-sha384!
+        dpdaction=restart
+        dpddelay=15s
+        dpdtimeout=60s
+        auto=start
+
+    conn gswan-primary
+        left=%defaultroute
+        leftid=@givin-c4i-node.police.gujarat.gov.in
+        leftsubnet=10.240.0.0/16
+        right=10.100.1.1
+        rightid=@gsdc-gw01.gswan.gujarat.gov.in
+        rightsubnet=10.0.0.0/8
+        auto=start

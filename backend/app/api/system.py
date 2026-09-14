@@ -23,6 +23,7 @@ from backend.app.services.gov_adapters import (
     afis_adapter,
     nafis_adapter
 )
+from backend.app.services.gswan_connector import gswan_connector
 import os
 import time
 
@@ -328,7 +329,8 @@ def get_deployment_readiness():
             "online_percentage": online_pct,
             "supported_protocols": ["RTSP", "RTSPS", "ONVIF", "VMS_API"]
         },
-        "government_adapters": gov_statuses
+        "government_adapters": gov_statuses,
+        "gswan_ipsec": gswan_connector.get_connectivity_status()
     }
 
 @router.get("/ai-metrics")
@@ -839,3 +841,11 @@ def get_sentinel_deployment_readiness():
         db.close()
 
 
+@router.get("/gswan-status")
+def get_gswan_tunnel_status():
+    """
+    Returns truthful GSWAN (Gujarat State Wide Area Network) IPsec site-to-site VPN tunnel
+    connectivity and diagnostic telemetry. Distinguishes clearly between DISCONNECTED,
+    ACTIVE, and SIMULATED_ACTIVE environments without fabricating live government peering.
+    """
+    return gswan_connector.get_connectivity_status()
