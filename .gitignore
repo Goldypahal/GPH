@@ -34,3 +34,5 @@ Thumbs.db
 *.tmp
 analysis_summary.txt
 srs_summary.txt
+artifacts/scale-80k/camera_fleet_*.json
+
