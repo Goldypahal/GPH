@@ -10,6 +10,17 @@
 
 This Claims Matrix provides an explicit, legally and architecturally conservative mapping of all platform claims made by GIVIN. For every capability, it specifies the concrete evidence in the repository, the verification status, the permissible phrasing for technical presentations and hackathon jury evaluations, and the strictly forbidden wording that would represent an exaggeration of current software readiness.
 
+> [!IMPORTANT]
+> **Strict Operational Truth & Non-Negotiable Negative Constraints**
+> In strict adherence to engineering truthfulness, the GIVIN platform asserts the following definitive operational boundaries:
+> 1. **No 80,000 Physical Camera Claim**: 80,000 physical cameras have NOT been connected or tested. The statewide 80K capability is an architecturally and mathematically modeled hybrid-edge design.
+> 2. **No Statewide Physical Deployment Claim**: The system is NOT currently physically deployed across all 33 districts of Gujarat. Manifests and topologies are configured for staged pilot rollout.
+> 3. **No Live Government Database Access Claim**: National and state databases (VAHAN, SARATHI, CCTNS, eGujCop, AFIS, NAFIS) are NOT live-connected. Adapters are contract-tested and sandbox-ready, failing closed in production when official mTLS certificates and GSWAN VPN tunnels are absent.
+> 4. **No Automatic Court Admissibility Claim**: The system does NOT guarantee court admissibility automatically. It generates technical electronic evidence packages and tamper-evident custody logs to support statutory certification under Section 63 of Bharatiya Sakshya Adhiniyam 2023 / Section 65B of Indian Evidence Act 1872 by an authorized designated officer.
+> 5. **No Definitive Cloned Plate Claim**: Suspicious spatiotemporal movements (>180 km/h or simultaneous distant sightings) are NOT definitively declared as cloned number plates. They are investigative leads (`SUSPICIOUS_MOVEMENT`) with multi-factor root-cause diagnostics (OCR error, GPS typo, clock drift, data delay, or counterfeit plate).
+> 6. **No 50 Physical Camera Claim**: The 50-camera acceptance test used a heterogeneous application-layer simulated stream harness, NOT 50 physical IP cameras.
+> 7. **No Real-World WAN Latency Guarantee**: Sub-second application-layer processing latency was measured on local stream simulation and does NOT guarantee latency over real, unmanaged public cellular or congested internet networks.
+
 ---
 
 ## 2. Comprehensive 5-Column Claims Matrix
